@@ -1,5 +1,7 @@
 {
     "cSpell.words": [
-        "jehoctor"
-    ]
+        "jehoctor",
+        "testpypi"
+    ],
+    "mypy-type-checker.interpreter": ["uv", "run", "python"]
 }

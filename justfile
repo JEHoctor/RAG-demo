@@ -1,18 +1,24 @@
+set shell := ["bash", "-c"]
+
 # List available commands
 default:
     @just --list
+
+# Delete old package builds
+clean:
+    rm -rf dist/
 
 # Build the package
 build:
     uv build
 
 # Upload package to PyPI
-publish: build
-    uv publish
+publish: clean build
+    uv publish ${JEHOCTOR_RAG_DEMO_PUBLISH_TOKEN:+--token=$JEHOCTOR_RAG_DEMO_PUBLISH_TOKEN}
 
 # Upload package to TestPyPI
-publish-test: build
-    uv publish --index testpypi
+publish-test: clean build
+    uv publish ${JEHOCTOR_RAG_DEMO_TEST_PUBLISH_TOKEN:+--token=$JEHOCTOR_RAG_DEMO_TEST_PUBLISH_TOKEN} --index testpypi
 
 # Run the chat command from the worktree
 chat:

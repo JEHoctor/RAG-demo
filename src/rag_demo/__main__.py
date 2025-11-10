@@ -1,11 +1,11 @@
 import typer
 
+from rag_demo.app import RAGDemo
+
 
 def _main(name: str | None = None) -> None:
-    if name is not None:
-        print(f"Hello {name} from rag-demo!")
-    else:
-        print("Hello from rag-demo!")
+    app = RAGDemo(username=name)
+    app.run()
 
 
 def main():

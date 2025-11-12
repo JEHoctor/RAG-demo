@@ -6,7 +6,7 @@
 
 .request {
     align: right middle;
-    color: red;
+    color: $accent;
     margin: 1;
 }
 

@@ -1,0 +1,22 @@
+#chats {
+    height: 80%;
+    width: 100%;
+    align: center top;
+}
+
+.request {
+    align: right middle;
+    color: red;
+    margin: 1;
+}
+
+.response {
+    background: $boost;
+}
+
+#new_request {
+    width: 50%;
+    margin: 1;
+    height: 3;
+    align: center middle;
+}

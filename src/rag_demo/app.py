@@ -25,6 +25,7 @@ class ConfigScreen(Screen):
     ]
 
     def compose(self) -> ComposeResult:
+        yield Header()
         yield Container(
             Static("🤖 LLM Configuration", classes="title"),
             Label("Select your LLM provider:"),
@@ -48,6 +49,7 @@ class ConfigScreen(Screen):
                 Button("Cancel", id="cancel"),
             ),
         )
+        yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "save":

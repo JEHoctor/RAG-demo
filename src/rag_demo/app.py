@@ -1,8 +1,9 @@
 from pathlib import Path
 
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Container, Horizontal, ScrollableContainer, Vertical
-from textual.events import Callback
+from textual.events import Callback, Key
 from textual.screen import Screen
 from textual.widgets import (
     Button,
@@ -19,6 +20,10 @@ from textual.widgets import (
 
 
 class ConfigScreen(Screen):
+    BINDINGS = [
+        ("escape", "app.pop_screen", "Back"),
+    ]
+
     def compose(self) -> ComposeResult:
         yield Container(
             Static("🤖 LLM Configuration", classes="title"),
@@ -74,9 +79,15 @@ class ConfigScreen(Screen):
         return config
 
 
-class RAGDemo(App):
-    CSS_PATH = Path(__file__).parent / "rag_demo.tcss"
+class EscapableInput(Input):
+    def on_key(self, event: Key) -> None:
+        if event.key == "escape":
+            self.blur()
+            event.prevent_default()
+            event.stop()
 
+
+class RAGScreen(Screen):
     def __init__(self, username: str | None = None) -> None:
         super().__init__()
         self.username = username
@@ -84,15 +95,21 @@ class RAGDemo(App):
     def compose(self) -> ComposeResult:
         yield Header()
         yield ScrollableContainer(id="chats")
-        yield Input(placeholder="     What do you want to know?", id="new_request")
+        yield EscapableInput(
+            placeholder="     What do you want to know?", id="new_request"
+        )
         yield Footer()
 
     def on_mount(self) -> None:
-        self.query_one("#new_request", Input).focus()
+        request_input = self.query_one("#new_request", Input)
+        request_input.focus()
+        request_input.BINDINGS.append(Binding("escape", "blur", "Deselect Input"))
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "new_request":
             new_request = event.value
+            if not new_request:
+                return
             self.query_one("#new_request", Input).value = ""
 
             # Todo: call LLM. This is just a mock.
@@ -107,3 +124,20 @@ class RAGDemo(App):
             conversation.mount(Markdown(llm_response, classes="response"))
             if tracking_bottom:
                 conversation.scroll_end(animate=False)
+
+
+class RAGDemo(App):
+    CSS_PATH = Path(__file__).parent / "rag_demo.tcss"
+    BINDINGS = [
+        Binding("z", "app.push_screen('chat')", "Chat"),
+        Binding("c", "app.push_screen('config')", "Configure"),
+    ]
+
+    def __init__(self, username: str | None = None) -> None:
+        super().__init__()
+        self.username = username
+
+    def on_mount(self) -> None:
+        self.install_screen(RAGScreen(username=self.username), name="chat")
+        self.install_screen(ConfigScreen(), name="config")
+        self.push_screen("chat")

@@ -18,6 +18,8 @@ from textual.widgets import (
     Static,
 )
 
+from rag_demo import rag
+
 
 class ConfigScreen(Screen):
     BINDINGS = [
@@ -93,13 +95,12 @@ class RAGScreen(Screen):
     def __init__(self, username: str | None = None) -> None:
         super().__init__()
         self.username = username
+        self.generating = False
 
     def compose(self) -> ComposeResult:
         yield Header()
         yield ScrollableContainer(id="chats")
-        yield EscapableInput(
-            placeholder="     What do you want to know?", id="new_request"
-        )
+        yield EscapableInput(placeholder="     What do you want to know?", id="new_request")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -109,23 +110,47 @@ class RAGScreen(Screen):
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "new_request":
+            if self.generating:
+                return
+            self.generating = True
+
             new_request = event.value
             if not new_request:
                 return
             self.query_one("#new_request", Input).value = ""
-
-            # Todo: call LLM. This is just a mock.
-            if self.username is not None:
-                llm_response = f"{self.username} you asked: {new_request}"
-            else:
-                llm_response = f"You asked: {new_request}"
+            rag.messages.append(("human", new_request))
 
             conversation = self.query_one("#chats", ScrollableContainer)
+            new_response_md = Markdown("Waiting for AI to respond...", classes="response")
+
             tracking_bottom = conversation.scroll_y >= conversation.max_scroll_y - 1
             conversation.mount(Label(new_request, classes="request"))
-            conversation.mount(Markdown(llm_response, classes="response"))
+            conversation.mount(new_response_md)
             if tracking_bottom:
                 conversation.scroll_end(animate=False)
+
+            self.run_worker(self.stream_response(new_request, new_response_md, conversation), exclusive=True)
+
+    async def stream_response(
+        self, new_request: str, new_response_md: Markdown, conversation: ScrollableContainer
+    ) -> None:
+        response = ""
+        try:
+            async for chunk in rag.llm.astream(rag.messages):
+                if chunk.content is None:
+                    continue
+                response += chunk.content
+
+                tracking_bottom = conversation.scroll_y >= conversation.max_scroll_y - 1
+                new_response_md.update(response)
+                if tracking_bottom:
+                    conversation.scroll_end(animate=False)
+        except Exception as e:
+            new_response_md.update(f"Error: {e}")
+        finally:
+            rag.messages.append(("ai", response))
+            self.query_one("#new_request", Input).disabled = False
+            self.generating = False
 
 
 class RAGDemo(App):

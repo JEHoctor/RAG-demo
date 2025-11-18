@@ -42,3 +42,6 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = "rag_demo"
+
+[tool.ruff]
+line-length = 120

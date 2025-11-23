@@ -36,6 +36,10 @@ serve:
 console:
     uv run textual console -x EVENT
 
+# Open a Textual dev console excluding all messages but INFO
+console-info:
+    uv run textual console -x EVENT -x DEBUG -x WARNING -x ERROR -x PRINT -x SYSTEM -x LOGGING -x WORKER
+
 # Run the chat command from PyPI
 chat-pypi:
     uv tool run --no-cache --from=jehoctor-rag-demo chat

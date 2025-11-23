@@ -34,7 +34,7 @@ serve:
 
 # Open a Textual dev console
 console:
-    uv run textual console
+    uv run textual console -x EVENT
 
 # Run the chat command from PyPI
 chat-pypi:

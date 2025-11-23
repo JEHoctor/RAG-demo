@@ -20,9 +20,21 @@ publish: clean build
 publish-test: clean build
     uv publish ${JEHOCTOR_RAG_DEMO_TEST_PUBLISH_TOKEN:+--token=$JEHOCTOR_RAG_DEMO_TEST_PUBLISH_TOKEN} --index testpypi
 
-# Run the chat command from the worktree
+# Run the chat command
 chat:
     uv run chat
+
+# Run the chat command in Textual dev mode
+chat-dev:
+    uv run textual run --dev -c chat
+
+# Run the chat command in a web browser
+serve:
+    uv run textual serve --dev chat
+
+# Open a Textual dev console
+console:
+    uv run textual console
 
 # Run the chat command from PyPI
 chat-pypi:

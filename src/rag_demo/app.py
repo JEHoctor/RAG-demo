@@ -1,10 +1,14 @@
 from pathlib import Path
 
+from markdown_it import MarkdownIt
+from textual import log
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, ScrollableContainer, Vertical
 from textual.events import Callback, Key
+from textual.reactive import reactive
 from textual.screen import Screen
+from textual.widget import Widget
 from textual.widgets import (
     Button,
     Footer,
@@ -91,6 +95,52 @@ class EscapableInput(Input):
             event.stop()
 
 
+class Response(Widget):
+    """Allow toggling between raw and rendered versions of markdown text."""
+
+    show_raw = reactive(False, layout=True)
+    content = reactive("", layout=True)
+
+    def __init__(self, *, content: str = "", classes: str | None = None) -> None:
+        super().__init__(classes=classes)
+        self.set_reactive(Response.content, content)
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Button("Show Raw", id="show_raw", classes="toggle-button")
+            yield Markdown(
+                self.content,
+                id="markdown-view",
+                parser_factory=lambda: MarkdownIt("gfm-like", {"breaks": True}),
+            )
+            yield Static(self.content, id="raw-view")
+
+    def on_mount(self) -> None:
+        self.query_one("#raw-view", Static).display = False
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "show_raw":
+            self.show_raw = not self.show_raw
+
+    def watch_show_raw(self) -> None:
+        button = self.query_one("#show_raw", Button)
+        markdown_view = self.query_one("#markdown-view", Markdown)
+        raw_view = self.query_one("#raw-view", Static)
+
+        if self.show_raw:
+            button.label = "Show Rendered"
+            markdown_view.display = False
+            raw_view.display = True
+        else:
+            button.label = "Show Raw"
+            markdown_view.display = True
+            raw_view.display = False
+
+    def watch_content(self, content: str) -> None:
+        self.query_one("#markdown-view", Markdown).update(content)
+        self.query_one("#raw-view", Static).update(content)
+
+
 class RAGScreen(Screen):
     def __init__(self, username: str | None = None) -> None:
         super().__init__()
@@ -121,7 +171,7 @@ class RAGScreen(Screen):
             rag.messages.append(("human", new_request))
 
             conversation = self.query_one("#chats", ScrollableContainer)
-            new_response_md = Markdown("Waiting for AI to respond...", classes="response")
+            new_response_md = Response(content="Waiting for AI to respond...", classes="response")
 
             tracking_bottom = conversation.scroll_y >= conversation.max_scroll_y - 1
             conversation.mount(Label(new_request, classes="request"))
@@ -132,7 +182,7 @@ class RAGScreen(Screen):
             self.run_worker(self.stream_response(new_request, new_response_md, conversation), exclusive=True)
 
     async def stream_response(
-        self, new_request: str, new_response_md: Markdown, conversation: ScrollableContainer
+        self, new_request: str, new_response_md: Response, conversation: ScrollableContainer
     ) -> None:
         response = ""
         try:
@@ -142,11 +192,11 @@ class RAGScreen(Screen):
                 response += chunk.content
 
                 tracking_bottom = conversation.scroll_y >= conversation.max_scroll_y - 1
-                new_response_md.update(response)
+                new_response_md.content = response
                 if tracking_bottom:
                     conversation.scroll_end(animate=False)
         except Exception as e:
-            new_response_md.update(f"Error: {e}")
+            new_response_md.content = f"Error: {e}"
         finally:
             rag.messages.append(("ai", response))
             self.query_one("#new_request", Input).disabled = False

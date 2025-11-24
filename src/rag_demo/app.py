@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from markdown_it import MarkdownIt
 from textual import log
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -23,6 +22,7 @@ from textual.widgets import (
 )
 
 from rag_demo import rag
+from rag_demo.markdown import parser_factory
 
 
 class ConfigScreen(Screen):
@@ -108,11 +108,7 @@ class Response(Widget):
     def compose(self) -> ComposeResult:
         with Vertical():
             yield Button("Show Raw", id="show_raw", classes="toggle-button")
-            yield Markdown(
-                self.content,
-                id="markdown-view",
-                parser_factory=lambda: MarkdownIt("gfm-like", {"breaks": True}),
-            )
+            yield Markdown(self.content, id="markdown-view", parser_factory=parser_factory)
             yield Static(self.content, id="raw-view")
 
     def on_mount(self) -> None:

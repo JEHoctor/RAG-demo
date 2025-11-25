@@ -1,10 +1,9 @@
 from pathlib import Path
 
-from textual import log
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, ScrollableContainer, Vertical
-from textual.events import Callback, Key
+from textual.containers import Container, Horizontal, VerticalGroup, VerticalScroll
+from textual.events import Key
 from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widget import Widget
@@ -17,7 +16,6 @@ from textual.widgets import (
     Markdown,
     RadioButton,
     RadioSet,
-    Select,
     Static,
 )
 
@@ -106,8 +104,10 @@ class Response(Widget):
         self.set_reactive(Response.content, content)
 
     def compose(self) -> ComposeResult:
-        with Vertical():
-            yield Button("Show Raw", id="show_raw", classes="toggle-button")
+        with VerticalGroup():
+            with Horizontal():
+                yield Static()
+                yield Button("Show Raw", id="show_raw", classes="toggle-button")
             yield Markdown(self.content, id="markdown-view", parser_factory=parser_factory)
             yield Static(self.content, id="raw-view")
 
@@ -145,14 +145,17 @@ class RAGScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield ScrollableContainer(id="chats")
-        yield EscapableInput(placeholder="     What do you want to know?", id="new_request")
+        yield VerticalScroll(id="chats")
+        with Horizontal(id="new_request_container"):
+            yield Static()
+            yield EscapableInput(placeholder="     What do you want to know?", id="new_request")
+            yield Static()
         yield Footer()
 
     def on_mount(self) -> None:
         request_input = self.query_one("#new_request", Input)
         request_input.focus()
-        request_input.BINDINGS.append(Binding("escape", "blur", "Deselect Input"))
+        # request_input.BINDINGS.append(Binding("escape", "blur", "Deselect Input"))
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "new_request":
@@ -166,20 +169,18 @@ class RAGScreen(Screen):
             self.query_one("#new_request", Input).value = ""
             rag.messages.append(("human", new_request))
 
-            conversation = self.query_one("#chats", ScrollableContainer)
+            conversation = self.query_one("#chats", VerticalScroll)
             new_response_md = Response(content="Waiting for AI to respond...", classes="response")
 
             tracking_bottom = conversation.scroll_y >= conversation.max_scroll_y - 1
-            conversation.mount(Label(new_request, classes="request"))
+            conversation.mount(Horizontal(Static(), Label(new_request, classes="request"), classes="dragon"))
             conversation.mount(new_response_md)
             if tracking_bottom:
                 conversation.scroll_end(animate=False)
 
             self.run_worker(self.stream_response(new_request, new_response_md, conversation), exclusive=True)
 
-    async def stream_response(
-        self, new_request: str, new_response_md: Response, conversation: ScrollableContainer
-    ) -> None:
+    async def stream_response(self, new_request: str, new_response_md: Response, conversation: VerticalScroll) -> None:
         response = ""
         try:
             async for chunk in rag.llm.astream(rag.messages):

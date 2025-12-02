@@ -50,7 +50,7 @@ chat-testpypi:
 
 # Test
 test:
-    uv run pytest -vv
+    uv run pytest -vv --cov=src --cov-report=term --cov-fail-under=5 tests/
 
 # Format
 format:

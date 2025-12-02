@@ -1,10 +1,15 @@
 {
     "cSpell.words": [
         "astream",
+        "chromadb",
         "hardbreak",
         "jehoctor",
+        "langchain",
+        "llamacpp",
         "Ollama",
+        "platformdirs",
         "softbreak",
+        "softbreaks",
         "tcss",
         "testpypi"
     ],

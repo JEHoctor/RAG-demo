@@ -29,6 +29,7 @@ def test_parser_removes_softbreaks() -> None:
     # This makes it simpler for all checks to be asserts.
     stack: list[tuple[list[Token], list[Token], int]] = [(result, comparison_result, 0)]
 
+    comparisons = 0
     while stack:
         result, comparison_result, index = stack.pop()
         if index == 0:
@@ -46,3 +47,6 @@ def test_parser_removes_softbreaks() -> None:
         if comparison_result_token.type == "softbreak":
             comparison_result_token.type = "hardbreak"
         assert result_token == comparison_result_token
+        comparisons += 1
+
+    assert comparisons == 12

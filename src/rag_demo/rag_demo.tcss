@@ -4,7 +4,7 @@ ToastRack {
 
 #chats {
     width: 100%;
-    hatch: cross $primary-darken-2 100%;
+    hatch: left $primary-darken-2 100%;
 }
 
 .request {
@@ -17,12 +17,12 @@ ToastRack {
 
 .request_container {
     align-horizontal: right;
-    hatch: cross $primary-darken-2 100%;
+    hatch: left $primary-darken-2 100%;
 }
 
 .response_container {
     align-horizontal: left;
-    hatch: cross $primary-darken-2 100%;
+    hatch: left $primary-darken-2 100%;
 }
 
 .response {
@@ -45,7 +45,7 @@ ToastRack {
 #new_request_bar > Static {
     width: 5%;
     height: 3;
-    hatch: cross $primary-darken-2 100%;
+    hatch: cross $surface 100%;
 }
 
 #new_conversation {

@@ -153,9 +153,7 @@ class RAGScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        request_input = self.query_one("#new_request", Input)
-        request_input.focus()
-        # request_input.BINDINGS.append(Binding("escape", "blur", "Deselect Input"))
+        self.query_one("#new_request", Input).focus()
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "new_request":

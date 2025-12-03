@@ -12,6 +12,7 @@ ToastRack {
     max-width: 90%;
     padding: 1 2 1 2;
     margin: 1 2 0 0;
+    background: $boost;
 }
 
 .request_container {
@@ -26,7 +27,6 @@ ToastRack {
 
 .response {
     margin: 1 0 0 2;
-    background: $boost;
     width: auto;
     max-width: 90%;
     height: auto;

@@ -3,39 +3,32 @@ ToastRack {
 }
 
 #chats {
-    height: 1fr;
     width: 100%;
+    hatch: cross $primary-darken-2 100%;
 }
 
 .request {
     min-width: 30%;
     max-width: 90%;
-    # width: auto;
-    height: auto;
-    border: solid $primary-darken-2;
-    # display: block;
-    # align: right top;
-    dock: right;
+    padding: 1 2 1 2;
+    margin: 1 2 0 0;
 }
 
-.dragon > Static {
-    min-width: 10%;
-    width: 1fr;
-    width: auto;
-    border: solid $primary-darken-2;
+.request_container {
+    align-horizontal: right;
+    hatch: cross $primary-darken-2 100%;
 }
 
-.dragon {
-    height: auto;
-    width: 100%;
+.response_container {
+    align-horizontal: left;
+    hatch: cross $primary-darken-2 100%;
 }
 
 .response {
+    margin: 1 0 0 2;
     background: $boost;
     width: auto;
     max-width: 90%;
-    border: solid $primary-darken-3;
-    display: block;
     height: auto;
 }
 
@@ -49,17 +42,13 @@ ToastRack {
     margin-left: 1;
 }
 
-#new_request_container {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
-#new_request_container > Static {
+#new_request_bar > Static {
     width: 5%;
+    height: 3;
+    hatch: cross $primary-darken-2 100%;
 }
 
 #new_request {
-    width: 90%;
+    width: 1fr;
     height: 3;
 }

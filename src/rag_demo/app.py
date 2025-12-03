@@ -166,7 +166,7 @@ class RAGScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield VerticalScroll(id="chats")
-        with Horizontal(id="new_request_container"):
+        with HorizontalGroup(id="new_request_bar"):
             yield Static()
             yield EscapableInput(placeholder="     What do you want to know?", id="new_request")
             yield Static()
@@ -191,8 +191,8 @@ class RAGScreen(Screen):
             new_response_md = Response(content="Waiting for AI to respond...", classes="response")
 
             tracking_bottom = conversation.scroll_y >= conversation.max_scroll_y - 1
-            conversation.mount(Horizontal(Static(), Label(new_request, classes="request"), classes="dragon"))
-            conversation.mount(new_response_md)
+            conversation.mount(HorizontalGroup(Label(new_request, classes="request"), classes="request_container"))
+            conversation.mount(HorizontalGroup(new_response_md, classes="response_container"))
             if tracking_bottom:
                 conversation.scroll_end(animate=False)
 

@@ -168,6 +168,7 @@ class RAGScreen(Screen):
         yield VerticalScroll(id="chats")
         with HorizontalGroup(id="new_request_bar"):
             yield Static()
+            yield Button("New Conversation", id="new_conversation")
             yield EscapableInput(placeholder="     What do you want to know?", id="new_request")
             yield Static()
         yield Footer()

@@ -48,6 +48,10 @@ ToastRack {
     hatch: cross $primary-darken-2 100%;
 }
 
+#new_conversation {
+    min-width: 20;
+}
+
 #new_request {
     width: 1fr;
     height: 3;

@@ -1,3 +1,7 @@
+ToastRack {
+    margin-bottom: 5;
+}
+
 #chats {
     height: 1fr;
     width: 100%;
@@ -35,17 +39,14 @@
     height: auto;
 }
 
-.response > VerticalGroup > Horizontal {
-    # border: solid green;
-    height: 1;
-    # background: $primary;
+.response #buttons {
+    align-horizontal: right;
 }
 
-#show_raw{
-    border: none none;
-    width: auto;
-    # align: right top;
-    dock: right;
+.response Button {
+    border: none;
+    min-width: 18;
+    margin-left: 1;
 }
 
 #new_request_container {

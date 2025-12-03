@@ -1,8 +1,10 @@
+import time
 from pathlib import Path
 
+import pyperclip
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, VerticalGroup, VerticalScroll
+from textual.containers import Container, Horizontal, HorizontalGroup, VerticalGroup, VerticalScroll
 from textual.events import Key
 from textual.reactive import reactive
 from textual.screen import Screen
@@ -105,9 +107,9 @@ class Response(Widget):
 
     def compose(self) -> ComposeResult:
         with VerticalGroup():
-            with Horizontal():
-                yield Static()
-                yield Button("Show Raw", id="show_raw", classes="toggle-button")
+            with HorizontalGroup(id="buttons"):
+                yield Button("Show Raw", id="show_raw", variant="primary")
+                yield Button("Copy", id="copy", variant="primary")
             yield Markdown(self.content, id="markdown-view", parser_factory=parser_factory)
             yield Static(self.content, id="raw-view")
 
@@ -117,6 +119,24 @@ class Response(Widget):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "show_raw":
             self.show_raw = not self.show_raw
+        elif event.button.id == "copy":
+            # Textual and Pyperclip use different methods to copy text to the clipboard. Textual uses ANSI escape
+            # sequence magic that is not supported by all terminals. Pyperclip uses OS-specific clipboard APIs, but it
+            # does not work over SSH.
+            start = time.time()
+            self.app.copy_to_clipboard(self.content)
+            checkpoint = time.time()
+            try:
+                pyperclip.copy(self.content)
+            except Exception as e:
+                self.app.log.error(f"Error copying to clipboard with Pyperclip: {e}")
+            checkpoint2 = time.time()
+            self.notify(f"Copied {len(self.content.splitlines())} lines of text to clipboard")
+            end = time.time()
+            self.app.log.info(f"Textual copy took {checkpoint - start:.6f} seconds")
+            self.app.log.info(f"Pyperclip copy took {checkpoint2 - checkpoint:.6f} seconds")
+            self.app.log.info(f"Notify took {end - checkpoint2:.6f} seconds")
+            self.app.log.info(f"Total of {end - start:.6f} seconds")
 
     def watch_show_raw(self) -> None:
         button = self.query_one("#show_raw", Button)

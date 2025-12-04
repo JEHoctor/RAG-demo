@@ -20,6 +20,7 @@ from textual.widgets import (
     RadioSet,
     Static,
 )
+from textual.widgets.markdown import MarkdownStream
 
 from rag_demo import rag
 from rag_demo.markdown import parser_factory
@@ -156,6 +157,43 @@ class Response(Widget):
         self.query_one("#markdown-view", Markdown).update(content)
         self.query_one("#raw-view", Static).update(content)
 
+    async def stream_response(self) -> None:
+        response: str = ""
+        md_widget = self.query_one("#markdown-view", Markdown)
+        raw_widget = self.query_one("#raw-view", Static)
+        stream: MarkdownStream | None = None
+        try:
+            first = True
+            async for chunk in rag.llm.astream(rag.messages):
+                if not isinstance(chunk.content, str):
+                    self.app.log.error(f"Received non-string response from LLM of type {type(chunk.content)}")
+                    continue
+                if first:
+                    response = chunk.content
+                    self.set_reactive(Response.content, response)
+                    md_widget.update(response)
+                    raw_widget.update(response)
+                    stream = Markdown.get_stream(md_widget)
+                    first = False
+                    continue
+                response += chunk.content
+                self.set_reactive(Response.content, response)
+                # Ignore type checker below: stream cannot be None at this point.
+                await stream.write(chunk.content)  # type: ignore
+                raw_widget.update(response)
+        except Exception as e:
+            if stream is not None:
+                await stream.stop()
+            content = f"Error: {e}"
+            self.set_reactive(Response.content, content)
+            md_widget.update(content)
+            raw_widget.update(content)
+        else:
+            if stream is not None:
+                await stream.stop()
+            rag.messages.append(("ai", response))
+            md_widget.update(response)
+
 
 class RAGScreen(Screen):
     def __init__(self, username: str | None = None) -> None:
@@ -165,7 +203,8 @@ class RAGScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield VerticalScroll(id="chats")
+        with VerticalScroll(id="chats"):
+            yield HorizontalGroup(id="top_chat_separator")
         with HorizontalGroup(id="new_request_bar"):
             yield Static()
             yield Button("New Conversation", id="new_conversation")
@@ -175,48 +214,36 @@ class RAGScreen(Screen):
 
     def on_mount(self) -> None:
         self.query_one("#new_request", Input).focus()
+        self.query_one("#chats", VerticalScroll).anchor()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "new_conversation":
+            self.app.notify("New conversation not implemented yet", severity="error")
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "new_request":
             if self.generating:
                 return
-            self.generating = True
-
             new_request = event.value
             if not new_request:
                 return
+            self.generating = True
+
             self.query_one("#new_request", Input).value = ""
             rag.messages.append(("human", new_request))
 
             conversation = self.query_one("#chats", VerticalScroll)
             new_response_md = Response(content="Waiting for AI to respond...", classes="response")
 
-            tracking_bottom = conversation.scroll_y >= conversation.max_scroll_y - 1
             conversation.mount(HorizontalGroup(Label(new_request, classes="request"), classes="request_container"))
             conversation.mount(HorizontalGroup(new_response_md, classes="response_container"))
-            if tracking_bottom:
-                conversation.scroll_end(animate=False)
+            conversation.anchor()
 
-            self.run_worker(self.stream_response(new_request, new_response_md, conversation), exclusive=True)
+            self.run_worker(self.stream_response(new_response_md))
 
-    async def stream_response(self, new_request: str, new_response_md: Response, conversation: VerticalScroll) -> None:
-        response = ""
-        try:
-            async for chunk in rag.llm.astream(rag.messages):
-                if chunk.content is None:
-                    continue
-                response += chunk.content
-
-                tracking_bottom = conversation.scroll_y >= conversation.max_scroll_y - 1
-                new_response_md.content = response
-                if tracking_bottom:
-                    conversation.scroll_end(animate=False)
-        except Exception as e:
-            new_response_md.content = f"Error: {e}"
-        finally:
-            rag.messages.append(("ai", response))
-            self.query_one("#new_request", Input).disabled = False
-            self.generating = False
+    async def stream_response(self, response_md: Response) -> None:
+        await response_md.stream_response()
+        self.generating = False
 
 
 class RAGDemo(App):

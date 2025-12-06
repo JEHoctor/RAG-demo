@@ -4,6 +4,7 @@
         "appname",
         "astream",
         "chromadb",
+        "gguf",
         "hardbreak",
         "ipython",
         "jehoctor",

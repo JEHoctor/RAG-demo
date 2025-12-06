@@ -65,3 +65,12 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.mypy]
+strict = true
+show_error_codes = true
+warn_unused_ignores = true
+files = ["src/", "tests/"]
+
+[tool.mypy.plugins]
+pydantic.mypy.plugins = { enabled = true }

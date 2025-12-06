@@ -67,6 +67,9 @@ ignore = [
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.ruff.lint.flake8-boolean-trap]
+extend-allowed-calls = ["textual.reactive.reactive"]
+
 [tool.mypy]
 strict = true
 show_error_codes = true

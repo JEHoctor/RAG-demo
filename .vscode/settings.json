@@ -13,6 +13,7 @@
         "platformdirs",
         "pydocstyle",
         "pyperclip",
+        "Renderable",
         "softbreak",
         "softbreaks",
         "tcss",

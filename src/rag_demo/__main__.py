@@ -1,9 +1,9 @@
 import typer
 
-from rag_demo.app import RAGDemo
-
 
 def _main(name: str | None = None) -> None:
+    from rag_demo.app import RAGDemo
+
     app = RAGDemo(username=name)
     app.run()
 

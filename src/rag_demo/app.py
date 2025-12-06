@@ -27,6 +27,7 @@ from rag_demo.markdown import parser_factory
 
 
 class ConfigScreen(Screen):
+    SUB_TITLE = "Configure"
     BINDINGS = [
         ("escape", "app.pop_screen", "Back"),
     ]
@@ -196,6 +197,8 @@ class Response(Widget):
 
 
 class RAGScreen(Screen):
+    SUB_TITLE = "Chat"
+
     def __init__(self, username: str | None = None) -> None:
         super().__init__()
         self.username = username
@@ -247,6 +250,7 @@ class RAGScreen(Screen):
 
 
 class RAGDemo(App):
+    TITLE = "RAG Demo"
     CSS_PATH = Path(__file__).parent / "rag_demo.tcss"
     BINDINGS = [
         Binding("z", "app.push_screen('chat')", "Chat"),

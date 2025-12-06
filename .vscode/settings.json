@@ -11,11 +11,16 @@
         "llamacpp",
         "Ollama",
         "platformdirs",
+        "pydocstyle",
         "pyperclip",
         "softbreak",
         "softbreaks",
         "tcss",
         "testpypi"
     ],
-    "mypy-type-checker.interpreter": ["uv", "run", "python"]
+    "mypy-type-checker.interpreter": ["uv", "run", "python"],
+    "python.defaultInterpreterPath": ".venv/bin/python",
+    "autoDocstring.docstringFormat": "google",
+    "autoDocstring.guessTypes": true,
+    "editor.rulers": [120]
 }

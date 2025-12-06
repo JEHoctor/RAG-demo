@@ -57,6 +57,7 @@ per-file-ignores = { "__init__.py" = ["F401"] }  # Ignore unused-import in all _
 select = ["ALL"]
 ignore = [
     "E501",   # Handled by ruff format (line-too-long)
+    "D100",   # undocumented-public-module
     "D104",   # undocumented-public-package
     "D203",   # Conflicts with Google style D211/D212
     "ANN101", # Missing type annotation for self

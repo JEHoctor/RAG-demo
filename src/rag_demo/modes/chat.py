@@ -127,12 +127,16 @@ class Response(Widget):
     def __init__(self, *, content: str = "", classes: str | None = None) -> None:
         super().__init__(classes=classes)
         self.set_reactive(Response.content, content)
+        self.stop_requested = False
 
     def compose(self) -> ComposeResult:
         with VerticalGroup():
-            with HorizontalGroup(id="buttons"):
-                yield Button("Show Raw", id="show_raw", variant="primary")
-                yield Button("Copy", id="copy", variant="primary")
+            with HorizontalGroup(id="header"):
+                yield Label("Chunks/s: ???", id="token_rate")
+                with HorizontalGroup(id="buttons"):
+                    yield Button("Stop", id="stop", variant="primary")
+                    yield Button("Show Raw", id="show_raw", variant="primary")
+                    yield Button("Copy", id="copy", variant="primary")
             yield Markdown(self.content, id="markdown-view", parser_factory=parser_factory)
             yield Static(self.content, id="raw-view")
 
@@ -140,7 +144,9 @@ class Response(Widget):
         self.query_one("#raw-view", Static).display = False
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "show_raw":
+        if event.button.id == "stop":
+            self.stop_requested = True
+        elif event.button.id == "show_raw":
             self.show_raw = not self.show_raw
         elif event.button.id == "copy":
             # Textual and Pyperclip use different methods to copy text to the clipboard. Textual uses ANSI escape
@@ -183,13 +189,20 @@ class Response(Widget):
         response: str = ""
         md_widget = self.query_one("#markdown-view", Markdown)
         raw_widget = self.query_one("#raw-view", Static)
+        rate_widget = self.query_one("#token_rate", Label)
+        stop_button = self.query_one("#stop", Button)
         stream: MarkdownStream | None = None
+        n_chunks = 0
+        start = time.time()
         try:
             first = True
             async for chunk in rag.llm.astream(rag.messages):
                 if not isinstance(chunk.content, str):
                     self.app.log.error(f"Received non-string response from LLM of type {type(chunk.content)}")
                     continue
+                n_chunks += 1
+                rate = n_chunks / (time.time() - start)
+                rate_widget.update(f"Chunks/s: {rate:.2f}")
                 if first:
                     response = chunk.content
                     self.set_reactive(Response.content, response)
@@ -197,12 +210,15 @@ class Response(Widget):
                     raw_widget.update(response)
                     stream = Markdown.get_stream(md_widget)
                     first = False
-                    continue
-                response += chunk.content
-                self.set_reactive(Response.content, response)
-                # Ignore type checker below: stream cannot be None at this point.
-                await stream.write(chunk.content)  # type: ignore
-                raw_widget.update(response)
+                else:
+                    response += chunk.content
+                    self.set_reactive(Response.content, response)
+                    # Ignore type checker below: stream cannot be None at this point.
+                    await stream.write(chunk.content)  # type: ignore
+                    raw_widget.update(response)
+                if self.stop_requested:
+                    self.stop_requested = False
+                    break
         except Exception as e:
             if stream is not None:
                 await stream.stop()
@@ -215,6 +231,8 @@ class Response(Widget):
                 await stream.stop()
             rag.messages.append(("ai", response))
             md_widget.update(response)
+        finally:
+            stop_button.display = False
 
 
 class ChatScreen(RAGDemoScreen):

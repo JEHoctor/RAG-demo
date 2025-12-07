@@ -36,16 +36,23 @@ ToastRack {
     height: auto;
 }
 
-.response #buttons {
+.response #header {
     background: $primary-darken-3;
-    align-horizontal: right;
     margin-bottom: 1;
+}
+
+.response #buttons {
+    align-horizontal: right;
 }
 
 .response Button {
     border: none;
     min-width: 18;
     margin-left: 1;
+}
+
+#token_rate {
+    padding-left: 1;
 }
 
 #raw-view {

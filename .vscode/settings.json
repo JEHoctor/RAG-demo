@@ -6,6 +6,7 @@
         "chromadb",
         "deepseek",
         "gguf",
+        "ghostty",
         "hardbreak",
         "huggingface",
         "ipython",
@@ -22,7 +23,8 @@
         "softbreaks",
         "tcss",
         "testpypi",
-        "unsloth"
+        "unsloth",
+        "wezterm"
     ],
     "mypy-type-checker.interpreter": ["uv", "run", "python"],
     "python.defaultInterpreterPath": ".venv/bin/python",

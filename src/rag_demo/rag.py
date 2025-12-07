@@ -24,7 +24,7 @@ def get_chat_llama_cpp() -> ChatLlamaCpp:
 
     return ChatLlamaCpp(
         model_path=model_path,
-        n_ctx=262_144,
+        n_ctx=32_768,
         n_batch=64,
         max_tokens=32_768,
         temperature=0.7,

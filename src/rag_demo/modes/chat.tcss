@@ -37,7 +37,9 @@ ToastRack {
 }
 
 .response #buttons {
+    background: $primary-darken-3;
     align-horizontal: right;
+    margin-bottom: 1;
 }
 
 .response Button {

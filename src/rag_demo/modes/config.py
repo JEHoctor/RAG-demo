@@ -13,10 +13,10 @@ from textual.widgets import (
     Static,
 )
 
-from rag_demo.modes._rag_demo_screen import RAGDemoScreen
+from rag_demo.modes._logic_provider import LogicProviderScreen
 
 
-class ConfigScreen(RAGDemoScreen):
+class ConfigScreen(LogicProviderScreen):
     SUB_TITLE = "Configure"
     CSS_PATH = Path(__file__).parent / "config.tcss"
 

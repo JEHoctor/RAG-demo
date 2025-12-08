@@ -3,10 +3,10 @@ from pathlib import Path
 from textual.app import ComposeResult
 from textual.widgets import Footer, Header, Label
 
-from rag_demo.modes._rag_demo_screen import RAGDemoScreen
+from rag_demo.modes._logic_provider import LogicProviderScreen
 
 
-class HelpScreen(RAGDemoScreen):
+class HelpScreen(LogicProviderScreen):
     """Display information about the application."""
 
     SUB_TITLE = "Help"

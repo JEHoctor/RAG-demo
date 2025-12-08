@@ -18,7 +18,7 @@ from textual.widgets._input import InputType, InputValidationOn
 
 from rag_demo import rag
 from rag_demo.markdown import parser_factory
-from rag_demo.modes._rag_demo_screen import RAGDemoScreen
+from rag_demo.modes._logic_provider import LogicProviderScreen, LogicProviderWidget
 
 if TYPE_CHECKING:
     from textual.widgets.markdown import MarkdownStream
@@ -118,7 +118,7 @@ class EscapableInput(Input):
             event.stop()
 
 
-class Response(Widget):
+class Response(LogicProviderWidget):
     """Allow toggling between raw and rendered versions of markdown text."""
 
     show_raw = reactive(False, layout=True)
@@ -235,7 +235,7 @@ class Response(Widget):
             stop_button.display = False
 
 
-class ChatScreen(RAGDemoScreen):
+class ChatScreen(LogicProviderScreen):
     SUB_TITLE = "Chat"
     CSS_PATH = Path(__file__).parent / "chat.tcss"
 

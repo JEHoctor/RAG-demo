@@ -46,3 +46,20 @@ Or run in a web browser:
 ```bash
 uvx --from=jehoctor-rag-demo textual serve chat
 ```
+
+## CUDA acceleration via Llama.cpp
+
+If you have an NVIDIA GPU with CUDA and build tools installed, you might be able to get CUDA acceleration without installing Ollama.
+
+```bash
+CMAKE_ARGS="-DGGML_CUDA=on" uv run chat
+```
+
+## Metal acceleration via Llama.cpp (on Apple Silicon)
+
+On an Apple Silicon machine, make sure `uv` runs an ARM interpreter as this should cause it to install Llama.cpp with Metal support.
+
+## Ollama on Linux
+
+Remember that you have to keep Ollama up-to-date manually on Linux.
+See this FAQ: https://docs.ollama.com/faq#how-can-i-upgrade-ollama

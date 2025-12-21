@@ -196,7 +196,7 @@ class Response(LogicProviderWidget):
         start = time.time()
         try:
             first = True
-            async for chunk in rag.llm.astream(rag.messages):
+            async for chunk in self.logic.llm.astream(rag.messages):
                 if not isinstance(chunk.content, str):
                     self.app.log.error(f"Received non-string response from LLM of type {type(chunk.content)}")
                     continue
@@ -239,9 +239,8 @@ class ChatScreen(LogicProviderScreen):
     SUB_TITLE = "Chat"
     CSS_PATH = Path(__file__).parent / "chat.tcss"
 
-    def __init__(self, username: str | None = None) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.username = username
         self.generating = False
 
     def compose(self) -> ComposeResult:
@@ -263,6 +262,14 @@ class ChatScreen(LogicProviderScreen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "new_conversation":
             self.app.notify(f"Dear {self.logic.username}, 'New Conversation' is not implemented yet", severity="error")
+            chats = self.query_one("#chats", VerticalScroll)
+            for child in chats.children:
+                if child.id == "top_chat_separator":
+                    continue
+                if isinstance(child, Response):
+                    child.stop_requested = True
+                child.remove()
+            rag.reset()
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "new_request":

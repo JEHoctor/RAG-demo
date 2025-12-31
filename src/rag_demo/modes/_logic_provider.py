@@ -1,9 +1,12 @@
-from typing import Protocol, cast
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Protocol, cast
 
 from textual.screen import Screen
 from textual.widget import Widget
 
-from rag_demo.logic import Logic
+if TYPE_CHECKING:
+    from rag_demo.logic import Logic
 
 
 class LogicProvider(Protocol):

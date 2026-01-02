@@ -7,7 +7,7 @@ authors = [
     { name = "James Hoctor", email = "JEHoctor@protonmail.com" }
 ]
 requires-python = ">=3.12"
-# Pinned aiosqlite to 0.21.0 to work around this issue:
+# TODO: Reverse pinning of aiosqlite to 0.21.0 to work around this issue:
 # https://github.com/langchain-ai/langgraph/issues/6583
 dependencies = [
     "aiosqlite==0.21.0",

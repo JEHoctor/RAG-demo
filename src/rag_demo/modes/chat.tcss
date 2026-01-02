@@ -7,7 +7,7 @@ ToastRack {
     hatch: left $primary-darken-2 100%;
 }
 
-#top_chat_separator {
+#top-chat-separator {
     hatch: left $primary-darken-2 100%;
     height: 1;
 }
@@ -20,12 +20,12 @@ ToastRack {
     background: $boost;
 }
 
-.request_container {
+.request-container {
     align-horizontal: right;
     hatch: left $primary-darken-2 100%;
 }
 
-.response_container {
+.response-container {
     align-horizontal: left;
     hatch: left $primary-darken-2 100%;
 }
@@ -51,7 +51,7 @@ ToastRack {
     margin-left: 1;
 }
 
-#token_rate {
+#token-rate {
     padding-left: 1;
 }
 
@@ -59,17 +59,17 @@ ToastRack {
     padding: 0 2 1 2;
 }
 
-#new_request_bar > Static {
+#new-request-bar > Static {
     width: 5%;
     height: 3;
     hatch: cross $surface 100%;
 }
 
-#new_conversation {
+#new-conversation {
     min-width: 20;
 }
 
-#new_request {
+#new-request {
     width: 1fr;
     height: 3;
 }

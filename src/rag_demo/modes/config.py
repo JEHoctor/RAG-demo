@@ -35,11 +35,11 @@ class ConfigScreen(LogicProviderScreen):
             Label("Model name:"),
             Input(placeholder="e.g., gpt-4, claude-3-sonnet-20240229", id="model"),
             Label("API Key (if applicable):"),
-            Input(placeholder="sk-...", password=True, id="api_key"),
+            Input(placeholder="sk-...", password=True, id="api-key"),
             Label("Base URL (for Ollama):"),
-            Input(placeholder="http://localhost:11434", id="base_url"),
+            Input(placeholder="http://localhost:11434", id="base-url"),
             Label("Model Path (for LlamaCpp):"),
-            Input(placeholder="/path/to/model.gguf", id="model_path"),
+            Input(placeholder="/path/to/model.gguf", id="model-path"),
             Horizontal(
                 Button("Save & Continue", variant="primary", id="save"),
                 Button("Cancel", id="cancel"),
@@ -58,9 +58,9 @@ class ConfigScreen(LogicProviderScreen):
     def collect_config(self) -> dict:
         provider = self.query_one("#provider", RadioSet).pressed_button.id
         model = self.query_one("#model", Input).value
-        api_key = self.query_one("#api_key", Input).value
-        base_url = self.query_one("#base_url", Input).value
-        model_path = self.query_one("#model_path", Input).value
+        api_key = self.query_one("#api-key", Input).value
+        base_url = self.query_one("#base-url", Input).value
+        model_path = self.query_one("#model-path", Input).value
 
         config = {
             "provider": provider,

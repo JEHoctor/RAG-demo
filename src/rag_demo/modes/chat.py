@@ -132,10 +132,10 @@ class Response(LogicProviderWidget):
     def compose(self) -> ComposeResult:
         with VerticalGroup():
             with HorizontalGroup(id="header"):
-                yield Label("Chunks/s: ???", id="token_rate")
+                yield Label("Chunks/s: ???", id="token-rate")
                 with HorizontalGroup(id="buttons"):
                     yield Button("Stop", id="stop", variant="primary")
-                    yield Button("Show Raw", id="show_raw", variant="primary")
+                    yield Button("Show Raw", id="show-raw", variant="primary")
                     yield Button("Copy", id="copy", variant="primary")
             yield Markdown(self.content, id="markdown-view", parser_factory=parser_factory)
             yield Static(self.content, id="raw-view")
@@ -146,7 +146,7 @@ class Response(LogicProviderWidget):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "stop":
             self.stop_requested = True
-        elif event.button.id == "show_raw":
+        elif event.button.id == "show-raw":
             self.show_raw = not self.show_raw
         elif event.button.id == "copy":
             # Textual and Pyperclip use different methods to copy text to the clipboard. Textual uses ANSI escape
@@ -168,7 +168,7 @@ class Response(LogicProviderWidget):
             self.app.log.info(f"Total of {end - start:.6f} seconds")
 
     def watch_show_raw(self) -> None:
-        button = self.query_one("#show_raw", Button)
+        button = self.query_one("#show-raw", Button)
         markdown_view = self.query_one("#markdown-view", Markdown)
         raw_view = self.query_one("#raw-view", Static)
 
@@ -189,7 +189,7 @@ class Response(LogicProviderWidget):
         response: str = ""
         md_widget = self.query_one("#markdown-view", Markdown)
         raw_widget = self.query_one("#raw-view", Static)
-        rate_widget = self.query_one("#token_rate", Label)
+        rate_widget = self.query_one("#token-rate", Label)
         stop_button = self.query_one("#stop", Button)
         stream: MarkdownStream | None = None
         n_chunks = 0
@@ -247,24 +247,24 @@ class ChatScreen(LogicProviderScreen):
         yield Header()
         chats = VerticalScroll(id="chats")
         with chats:
-            yield HorizontalGroup(id="top_chat_separator")
-        with HorizontalGroup(id="new_request_bar"):
+            yield HorizontalGroup(id="top-chat-separator")
+        with HorizontalGroup(id="new-request-bar"):
             yield Static()
-            yield Button("New Conversation", id="new_conversation")
-            yield EscapableInput(placeholder="     What do you want to know?", id="new_request", focus_on_escape=chats)
+            yield Button("New Conversation", id="new-conversation")
+            yield EscapableInput(placeholder="     What do you want to know?", id="new-request", focus_on_escape=chats)
             yield Static()
         yield Footer()
 
     def on_mount(self) -> None:
-        self.query_one("#new_request", Input).focus()
+        self.query_one("#new-request", Input).focus()
         self.query_one("#chats", VerticalScroll).anchor()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "new_conversation":
+        if event.button.id == "new-conversation":
             self.app.notify(f"Dear {self.logic.username}, 'New Conversation' is not implemented yet", severity="error")
             chats = self.query_one("#chats", VerticalScroll)
             for child in chats.children:
-                if child.id == "top_chat_separator":
+                if child.id == "top-chat-separator":
                     continue
                 if isinstance(child, Response):
                     child.stop_requested = True
@@ -272,7 +272,7 @@ class ChatScreen(LogicProviderScreen):
             rag.reset()
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
-        if event.input.id == "new_request":
+        if event.input.id == "new-request":
             if self.generating:
                 return
             new_request = event.value
@@ -280,14 +280,14 @@ class ChatScreen(LogicProviderScreen):
                 return
             self.generating = True
 
-            self.query_one("#new_request", Input).value = ""
+            self.query_one("#new-request", Input).value = ""
             rag.messages.append(("human", new_request))
 
             conversation = self.query_one("#chats", VerticalScroll)
             new_response_md = Response(content="Waiting for AI to respond...", classes="response")
 
-            conversation.mount(HorizontalGroup(Label(new_request, classes="request"), classes="request_container"))
-            conversation.mount(HorizontalGroup(new_response_md, classes="response_container"))
+            conversation.mount(HorizontalGroup(Label(new_request, classes="request"), classes="request-container"))
+            conversation.mount(HorizontalGroup(new_response_md, classes="response-container"))
             conversation.anchor()
 
             self.run_worker(self.stream_response(new_response_md))

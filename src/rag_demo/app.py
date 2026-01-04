@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from typing import ClassVar
 
@@ -36,6 +37,12 @@ class RAGDemo(App):
         super().__init__()
         self.logic = logic
 
-    def on_mount(self) -> None:
-        """Set the initial mode to chat."""
+    async def on_mount(self) -> None:
+        """Set the initial mode to chat and initialize async parts of the logic."""
+        self.log.info("Testing testing 1 2 3")
         self.switch_mode("chat")
+        self.run_worker(self.logic.main_worker(self))
+        await self.logic.async_init()
+        self.log.info(f"Application started in {time.time() - self.logic.application_start_time:.4f}s")
+        for name, time_ in self.logic.logic_init_times.items():
+            self.log.info(f"{name}: {time_:.4f}s")

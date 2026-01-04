@@ -1,20 +1,102 @@
+from __future__ import annotations
+
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pyperclip
-from textual.app import ComposeResult
 from textual.containers import HorizontalGroup, VerticalGroup, VerticalScroll
 from textual.reactive import reactive
-from textual.widgets import Button, Footer, Header, Input, Label, Markdown, Static
+from textual.widgets import Button, Footer, Header, Input, Label, Markdown, Pretty, Static
+from textual.widgets.markdown import MarkdownStream
 
-from rag_demo import rag
 from rag_demo.markdown import parser_factory
 from rag_demo.modes._logic_provider import LogicProviderScreen, LogicProviderWidget
 from rag_demo.widgets import EscapableInput
 
 if TYPE_CHECKING:
-    from textual.widgets.markdown import MarkdownStream
+    from collections.abc import AsyncIterator
+
+    from textual.app import ComposeResult
+
+
+class ResponseStreamInProgressError(ValueError):
+    """Exception raised when a Response widget already has an open writer stream."""
+
+    def __init__(self) -> None:  # noqa: D107
+        super().__init__("This Response widget already has an open writer stream.")
+
+
+class StoppedStreamError(ValueError):
+    """Exception raised when a ResponseWriter is asked to write after it has been stopped."""
+
+    def __init__(self) -> None:  # noqa: D107
+        super().__init__("Can't write to a stopped ResponseWriter stream.")
+
+
+class ResponseWriter:
+    """Stream markdown to a Response widget as if it were a simple Markdown widget.
+
+    This handles streaming to the Markdown widget and updating the raw text widget and the generation rate label.
+
+    This class is based on the MarkdownStream class from the Textual library.
+    """
+
+    def __init__(self, response_widget: Response) -> None:
+        """Initialize a new ResponseWriter.
+
+        Args:
+            response_widget (Response): The Response widget to write to.
+        """
+        self.response_widget = response_widget
+        self._markdown_widget = response_widget.query_one("#markdown-view", Markdown)
+        self._markdown_stream = MarkdownStream(self._markdown_widget)
+        self._raw_widget = response_widget.query_one("#raw-view", Label)
+        self._start_time: float | None = None
+        self._n_chunks = 0
+        self._response_text = ""
+        self._stopped = False
+
+    async def stop(self) -> None:
+        """Stop this ResponseWriter, particularly its underlying MarkdownStream."""
+        self._stopped = True
+        # This is safe even if the MarkdownStream has not been started, or has already been stopped.
+        await self._markdown_stream.stop()
+        # Because of the markdown parsing tweaks I made in src/rag_demo/markdown.py, we need to reparse the final
+        # markdown and rerender one more time to clean up small issues with newlines.
+        self._markdown_widget.update(self._response_text)
+
+    async def write(self, markdown_fragment: str) -> None:
+        """Stream a single chunk/fragment to the corresponding Response widget.
+
+        Args:
+            markdown_fragment (str): The new markdown fragment to append to the existing markdown.
+
+        Raises:
+            StoppedStreamError: Raised if the new markdown chunk cannot be accepted because the stream has been stopped.
+        """
+        if self._stopped:
+            raise StoppedStreamError
+        write_time = time.time()
+        self._response_text += markdown_fragment
+        self.response_widget.set_reactive(Response.content, self._response_text)
+        self._raw_widget.update(self._response_text)
+        if self._start_time is None:
+            # The first chunk. Can't set the rate label until we have a second chunk.
+            self._start_time = write_time
+
+            self._markdown_widget.update(markdown_fragment)
+            self._markdown_stream.start()
+        else:
+            # The second and subsequent chunks. Note that self._n_chunks has not been incremented yet because
+            # we are calculating the generation rate excluding the first chunk, which may have required loading a
+            # large model.
+            rate = self._n_chunks / (write_time - self._start_time)
+            self.response_widget.update_rate_label(rate)
+
+            await self._markdown_stream.write(markdown_fragment)
+        self._n_chunks += 1
 
 
 class Response(LogicProviderWidget):
@@ -24,11 +106,20 @@ class Response(LogicProviderWidget):
     content = reactive("", layout=True)
 
     def __init__(self, *, content: str = "", classes: str | None = None) -> None:
+        """Initialize a new Response widget.
+
+        Args:
+            content (str, optional): Initial response text. Defaults to empty string.
+            classes (str | None, optional): Optional widget classes for use with TCSS. Defaults to None.
+        """
         super().__init__(classes=classes)
         self.set_reactive(Response.content, content)
-        self.stop_requested = False
+        self._stream: ResponseWriter | None = None
+        self.__object_to_show_sentinel = object()
+        self._object_to_show: Any = self.__object_to_show_sentinel
 
     def compose(self) -> ComposeResult:
+        """Compose the initial content of the widget."""
         with VerticalGroup():
             with HorizontalGroup(id="header"):
                 yield Label("Chunks/s: ???", id="token-rate")
@@ -37,14 +128,56 @@ class Response(LogicProviderWidget):
                     yield Button("Show Raw", id="show-raw", variant="primary")
                     yield Button("Copy", id="copy", variant="primary")
             yield Markdown(self.content, id="markdown-view", parser_factory=parser_factory)
-            yield Static(self.content, id="raw-view")
+            yield Label(self.content, id="raw-view", markup=False)
+            yield Pretty(None, id="object-view")
 
     def on_mount(self) -> None:
-        self.query_one("#raw-view", Static).display = False
+        """Hide certain elements until they are needed."""
+        self.query_one("#raw-view", Label).display = False
+        self.query_one("#object-view", Pretty).display = False
+        self.query_one("#stop", Button).display = False
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    def set_shown_object(self, obj: Any) -> None:  # noqa: ANN401
+        self._object_to_show = obj
+        self.query_one("#markdown-view", Markdown).display = False
+        self.query_one("#raw-view", Label).display = False
+        self.query_one("#show-raw", Button).display = False
+        self.query_one("#object-view", Pretty).update(obj)
+        self.query_one("#object-view", Pretty).display = True
+
+    def clear_shown_object(self) -> None:
+        self._object_to_show = self.__object_to_show_sentinel
+        if self.show_raw:
+            self.query_one("#show-raw", Button).display = True
+        else:
+            self.query_one("#markdown-view", Markdown).display = True
+
+    @asynccontextmanager
+    async def stream_writer(self) -> AsyncIterator[ResponseWriter]:
+        """Open an exclusive stream to write markdown in chunks.
+
+        Raises:
+            ResponseWriteInProgressError: Raised when there is already an open stream.
+
+        Yields:
+            ResponseWriter: _description_
+        """
+        if self._stream is not None:
+            raise ResponseStreamInProgressError
+        self._stream = ResponseWriter(self)
+        self.query_one("#stop", Button).display = True
+        try:
+            yield self._stream
+        finally:
+            await self._stream.stop()
+            self.query_one("#stop", Button).display = False
+            self._stream = None
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press events."""
         if event.button.id == "stop":
-            self.stop_requested = True
+            if self._stream is not None:
+                await self._stream.stop()
         elif event.button.id == "show-raw":
             self.show_raw = not self.show_raw
         elif event.button.id == "copy":
@@ -56,7 +189,7 @@ class Response(LogicProviderWidget):
             checkpoint = time.time()
             try:
                 pyperclip.copy(self.content)
-            except Exception as e:
+            except pyperclip.PyperclipException as e:
                 self.app.log.error(f"Error copying to clipboard with Pyperclip: {e}")
             checkpoint2 = time.time()
             self.notify(f"Copied {len(self.content.splitlines())} lines of text to clipboard")
@@ -67,9 +200,15 @@ class Response(LogicProviderWidget):
             self.app.log.info(f"Total of {end - start:.6f} seconds")
 
     def watch_show_raw(self) -> None:
+        """Handle reactive updates to the show_raw attribute by changing the visibility of the child widgets.
+
+        This also keeps the text on the visibility toggle button up-to-date.
+        """
+        if self._object_to_show is not self.__object_to_show_sentinel:
+            return
         button = self.query_one("#show-raw", Button)
         markdown_view = self.query_one("#markdown-view", Markdown)
-        raw_view = self.query_one("#raw-view", Static)
+        raw_view = self.query_one("#raw-view", Label)
 
         if self.show_raw:
             button.label = "Show Rendered"
@@ -81,68 +220,32 @@ class Response(LogicProviderWidget):
             raw_view.display = False
 
     def watch_content(self, content: str) -> None:
-        self.query_one("#markdown-view", Markdown).update(content)
-        self.query_one("#raw-view", Static).update(content)
+        """Handle reactive updates to the content attribute by updating the markdown and raw views.
 
-    async def stream_response(self) -> None:
-        response: str = ""
-        md_widget = self.query_one("#markdown-view", Markdown)
-        raw_widget = self.query_one("#raw-view", Static)
-        rate_widget = self.query_one("#token-rate", Label)
-        stop_button = self.query_one("#stop", Button)
-        stream: MarkdownStream | None = None
-        n_chunks = 0
-        start = time.time()
-        try:
-            first = True
-            async for chunk in self.logic.llm.astream(rag.messages):
-                if not isinstance(chunk.content, str):
-                    self.app.log.error(f"Received non-string response from LLM of type {type(chunk.content)}")
-                    continue
-                n_chunks += 1
-                rate = n_chunks / (time.time() - start)
-                rate_widget.update(f"Chunks/s: {rate:.2f}")
-                if first:
-                    response = chunk.content
-                    self.set_reactive(Response.content, response)
-                    md_widget.update(response)
-                    raw_widget.update(response)
-                    stream = Markdown.get_stream(md_widget)
-                    first = False
-                else:
-                    response += chunk.content
-                    self.set_reactive(Response.content, response)
-                    # Ignore type checker below: stream cannot be None at this point.
-                    await stream.write(chunk.content)  # type: ignore
-                    raw_widget.update(response)
-                if self.stop_requested:
-                    self.stop_requested = False
-                    break
-        except Exception as e:
-            if stream is not None:
-                await stream.stop()
-            content = f"Error: {e}"
-            self.set_reactive(Response.content, content)
-            md_widget.update(content)
-            raw_widget.update(content)
-        else:
-            if stream is not None:
-                await stream.stop()
-            rag.messages.append(("ai", response))
-            md_widget.update(response)
-        finally:
-            stop_button.display = False
+        Args:
+            content (str): New content for the widget.
+        """
+        self.query_one("#markdown-view", Markdown).update(content)
+        self.query_one("#raw-view", Label).update(content)
+
+    def update_rate_label(self, rate: float | None) -> None:
+        """Update or reset the generation rate indicator.
+
+        Args:
+            rate (float | None): Generation rate, or None to reset. Defaults to None.
+        """
+        label_text = "Chunks/s: ???" if rate is None else f"Chunks/s: {rate:.2f}"
+        self.query_one("#token-rate", Label).update(label_text)
 
 
 class ChatScreen(LogicProviderScreen):
+    """Main mode of the app. Talk to the AI agent."""
+
     SUB_TITLE = "Chat"
     CSS_PATH = Path(__file__).parent / "chat.tcss"
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.generating = False
-
     def compose(self) -> ComposeResult:
+        """Compose the initial content of the chat screen."""
         yield Header()
         chats = VerticalScroll(id="chats")
         with chats:
@@ -155,42 +258,56 @@ class ChatScreen(LogicProviderScreen):
         yield Footer()
 
     def on_mount(self) -> None:
+        """When the screen is mounted, focus the input field and enable bottom anchoring for the message view."""
         self.query_one("#new-request", Input).focus()
         self.query_one("#chats", VerticalScroll).anchor()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press events."""
         if event.button.id == "new-conversation":
-            self.app.notify(f"Dear {self.logic.username}, 'New Conversation' is not implemented yet", severity="error")
-            chats = self.query_one("#chats", VerticalScroll)
-            for child in chats.children:
-                if child.id == "top-chat-separator":
-                    continue
-                if isinstance(child, Response):
-                    child.stop_requested = True
-                child.remove()
-            rag.reset()
+            self.logic.new_conversation(self)
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Handle submission of new requests."""
         if event.input.id == "new-request":
-            if self.generating:
-                return
-            new_request = event.value
-            if not new_request:
-                return
-            self.generating = True
+            accepted = await self.logic.submit_request(self, event.value)
+            if accepted:
+                self.query_one("#new-request", Input).value = ""
 
-            self.query_one("#new-request", Input).value = ""
-            rag.messages.append(("human", new_request))
+    def clear_chats(self) -> None:
+        """Clear the chat scroll area."""
+        chats = self.query_one("#chats", VerticalScroll)
+        for child in chats.children:
+            if child.id != "top-chat-separator":
+                child.remove()
 
-            conversation = self.query_one("#chats", VerticalScroll)
-            new_response_md = Response(content="Waiting for AI to respond...", classes="response")
+    def new_request(self, request_text: str) -> Label:
+        """Create a new request element in the chat area.
 
-            conversation.mount(HorizontalGroup(Label(new_request, classes="request"), classes="request-container"))
-            conversation.mount(HorizontalGroup(new_response_md, classes="response-container"))
-            conversation.anchor()
+        Args:
+            request_text (str): The text of the request.
 
-            self.run_worker(self.stream_response(new_response_md))
+        Returns:
+            Label: The request element.
+        """
+        chats = self.query_one("#chats", VerticalScroll)
+        request = Label(request_text, classes="request")
+        chats.mount(HorizontalGroup(request, classes="request-container"))
+        chats.anchor()
+        return request
 
-    async def stream_response(self, response_md: Response) -> None:
-        await response_md.stream_response()
-        self.generating = False
+    def new_response(self, response_text: str = "Waiting for AI to respond...") -> Response:
+        """Create a new response element in the chat area.
+
+        Args:
+            response_text (str, optional): Initial response text. Usually this is a default message shown before
+                streaming the actual response. Defaults to "Waiting for AI to respond...".
+
+        Returns:
+            Response: The response widget/element.
+        """
+        chats = self.query_one("#chats", VerticalScroll)
+        response = Response(content=response_text, classes="response")
+        chats.mount(HorizontalGroup(response, classes="response-container"))
+        chats.anchor()
+        return response

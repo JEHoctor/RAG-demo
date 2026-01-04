@@ -1,4 +1,9 @@
-import typer
+import time
+
+APPLICATION_START_TIME = time.time()
+
+# Import after the application start time is measured.
+import typer  # noqa: E402
 
 
 def _main(
@@ -10,7 +15,7 @@ def _main(
     from rag_demo.app import RAGDemo  # noqa: PLC0415
     from rag_demo.logic import Logic  # noqa: PLC0415
 
-    logic = Logic(username=name)
+    logic = Logic(username=name, application_start_time=APPLICATION_START_TIME)
     app = RAGDemo(logic)
     app.run()
 

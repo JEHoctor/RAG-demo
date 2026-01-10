@@ -1,8 +1,10 @@
 import time
 
+# Measure the application start time.
 APPLICATION_START_TIME = time.time()
 
-# Import after the application start time is measured.
+# Disable "module import not at top of file" (aka E402) when importing Typer. This is necessary so that Typer's
+# initialization is included in the application startup time.
 import typer  # noqa: E402
 
 

@@ -62,4 +62,5 @@ On an Apple Silicon machine, make sure `uv` runs an ARM interpreter as this shou
 ## Ollama on Linux
 
 Remember that you have to keep Ollama up-to-date manually on Linux.
-See this FAQ: https://docs.ollama.com/faq#how-can-i-upgrade-ollama
+A recent version of Ollama (v0.11.10 or later) is required to run the [embedding model we use](https://ollama.com/library/embeddinggemma).
+See this FAQ: https://docs.ollama.com/faq#how-can-i-upgrade-ollama.

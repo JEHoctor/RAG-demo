@@ -6,7 +6,7 @@ from textual.screen import Screen
 from textual.widget import Widget
 
 if TYPE_CHECKING:
-    from rag_demo.logic import Logic
+    from rag_demo.logic import Logic, Runtime
 
 
 class LogicProvider(Protocol):
@@ -14,19 +14,20 @@ class LogicProvider(Protocol):
 
     logic: Logic
 
+    async def runtime(self) -> Runtime: ...
+
 
 class LogicProviderScreen(Screen):
     """A Screen that provides access to the application logic via its parent app."""
 
     @property
     def logic(self) -> Logic:
-        """The application logic of the parent app.
-
-        Returns:
-            Logic: The application logic of the parent app.
-        """
-        # Satisfy the type checker by attesting that the app is an AppLogicProvider.
+        """Returns the application logic of the parent app."""
         return cast("LogicProvider", self.app).logic
+
+    async def runtime(self) -> Runtime:
+        """Returns the application runtime of the parent app."""
+        return await cast("LogicProvider", self.app).runtime()
 
 
 class LogicProviderWidget(Widget):
@@ -34,10 +35,9 @@ class LogicProviderWidget(Widget):
 
     @property
     def logic(self) -> Logic:
-        """The application logic of the parent app.
-
-        Returns:
-            Logic: The application logic of the parent app.
-        """
-        # Satisfy the type checker by attesting that the app is an AppLogicProvider.
+        """Returns the application logic of the parent app."""
         return cast("LogicProvider", self.app).logic
+
+    async def runtime(self) -> Runtime:
+        """Returns the application runtime of the parent app."""
+        return await cast("LogicProvider", self.app).runtime()

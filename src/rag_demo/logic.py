@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import platform
-import pprint
 import time
-from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Protocol, TypeVar, cast
 
 import aiosqlite
 import cpuinfo
@@ -21,7 +19,7 @@ from datasets import Dataset, load_dataset
 from huggingface_hub import hf_hub_download
 from huggingface_hub.constants import HF_HUB_CACHE
 from langchain.agents import create_agent
-from langchain.messages import HumanMessage
+from langchain.messages import AIMessageChunk, HumanMessage
 from langchain_community.chat_models import ChatLlamaCpp
 from langchain_community.embeddings import LlamaCppEmbeddings
 from langchain_core.exceptions import LangChainException
@@ -32,37 +30,42 @@ from rag_demo import dirs
 from rag_demo.modes.chat import Response, StoppedStreamError
 
 if TYPE_CHECKING:
-    from langgraph.graph.state import CompiledStateGraph
+    from collections.abc import AsyncIterator, Awaitable
 
-    from rag_demo.app import RAGDemo
+    from textual.worker import Worker
+
     from rag_demo.modes import ChatScreen
 
+ResultType = TypeVar("ResultType")
 
-class Logic:
-    """Top-level application logic."""
 
-    def __init__(
-        self,
-        username: str | None = None,
-        application_start_time: float | None = None,
-        sqlite_connection_string: str = f"sqlite:///{dirs.DATA_DIR}/checkpoints.sqlite3",
-    ) -> None:
-        """Initialize the application logic.
+class AppLike(Protocol):
+    """Protocol for the subset of what the main App can do that the runtime needs."""
+
+    def run_worker(self, work: Awaitable[ResultType]) -> Worker[ResultType]:
+        """Run a coroutine in the background.
+
+        See https://textual.textualize.io/guide/workers/.
 
         Args:
-            username (str | None, optional): The username provided as a command line argument. Defaults to None.
-            application_start_time (float | None, optional): The time when the application started. Defaults to None.
-            sqlite_connection_string (str, optional): The connection string for the SQLite database. Defaults to
-                f"sqlite:///{dirs.DATA_DIR}/checkpoints.sqlite3".
+            work (Awaitable[ResultType]): The coroutine to run.
         """
-        start_time = time.time()
-        self.logic_init_times = {}
-        if application_start_time is not None:
-            self.logic_init_times["before logic initializes"] = start_time - application_start_time
-        self.username = username
-        self.application_start_time = application_start_time
-        self.sqlite_connection_string = sqlite_connection_string
-        if self.probe_ollama() is not None:
+        ...
+
+
+class Runtime:
+    """The application logic with asynchronously initialized resources."""
+
+    def __init__(self, logic: Logic, conn: aiosqlite.Connection, app_like: AppLike) -> None:
+        self.runtime_start_time = time.time()
+        self.logic = logic
+        self.conn = conn
+        self.app_like = app_like
+
+        self.current_thread = 1
+        self.generating = False
+
+        if self.logic.probe_ollama() is not None:
             ollama.pull("gemma3:latest")  # 3.3GB
             ollama.pull("embeddinggemma:latest")  # 621MB
             self.llm = ChatOllama(
@@ -86,46 +89,50 @@ class Logic:
             self.llm = ChatLlamaCpp(model_path=model_path, verbose=False)
             self.embed = LlamaCppEmbeddings(model_path=embedding_model_path, verbose=False)  # pyright: ignore[reportCallIssue]
 
-        llm_done_time = time.time()
-        self.logic_init_times["llm probing and init"] = llm_done_time - start_time
-
-        # TODO: Do I need to set check_same_thread=False?
-        # self._conn = aiosqlite.connect(database=dirs.DATA_DIR / "checkpoints.sqlite3", check_same_thread=False)
-        self.agent: CompiledStateGraph | None = None
-        self.current_thread = 1
-
-        # Slow. Commented out for now. Should be moved to some async task perhaps.
-        # # RAG:
-        # self.qa_test: Dataset = cast(
-        #     "Dataset",
-        #     load_dataset("rag-datasets/rag-mini-wikipedia", "question-answer", split="test"),
-        # )
-        # self.corpus: Dataset = cast(
-        #     "Dataset",
-        #     load_dataset("rag-datasets/rag-mini-wikipedia", "text-corpus", split="passages"),
-        # )
-
-        datasets_done_time = time.time()
-        self.logic_init_times["datasets loading"] = datasets_done_time - llm_done_time
-        self.logic_init_times["total"] = datasets_done_time - start_time
-
-        self.generating = False
-
-    async def main_worker(self, app: RAGDemo) -> None:
-        async with aiosqlite.connect(database=self.sqlite_connection_string) as conn:
-            await self._main_worker(app, conn)
-
-    async def _main_worker(self, app: RAGDemo, conn: aiosqlite.Connection) -> None:
-        pass
-
-    async def async_init(self) -> None:
-        async_init_start_time = time.time()
         self.agent = create_agent(
             model=self.llm,
             system_prompt="You are a helpful assistant.",
-            # checkpointer=AsyncSqliteSaver(self._conn),
+            checkpointer=AsyncSqliteSaver(conn),
         )
-        self.logic_init_times["agent init"] = time.time() - async_init_start_time
+
+    def get_rag_datasets(self) -> None:
+        self.qa_test: Dataset = cast(
+            "Dataset",
+            load_dataset("rag-datasets/rag-mini-wikipedia", "question-answer", split="test"),
+        )
+        self.corpus: Dataset = cast(
+            "Dataset",
+            load_dataset("rag-datasets/rag-mini-wikipedia", "text-corpus", split="passages"),
+        )
+
+    async def stream_response(self, response_widget: Response, request_text: str, thread: str) -> None:
+        """Worker method for streaming tokens from the active agent to a response widget.
+
+        Args:
+            response_widget (Response): Target response widget for streamed tokens.
+            request_text (str): Text of the user request.
+            thread (str): ID of the current thread.
+        """
+        async with response_widget.stream_writer() as writer:
+            agent_stream = self.agent.astream(
+                {"messages": [HumanMessage(content=request_text)]},
+                {"configurable": {"thread_id": thread}},
+                stream_mode="messages",
+            )
+            try:
+                async for message_chunk, _ in agent_stream:
+                    if isinstance(message_chunk, AIMessageChunk):
+                        token = cast("AIMessageChunk", message_chunk).content
+                        if isinstance(token, str):
+                            await writer.write(token)
+                        else:
+                            response_widget.log.error(f"Received message content of type {type(token)}")
+                    else:
+                        response_widget.log.error(f"Received message chunk of type {type(message_chunk)}")
+            except StoppedStreamError as e:
+                response_widget.set_shown_object(e)
+            except LangChainException as e:
+                response_widget.set_shown_object(e)
 
     def new_conversation(self, chat_screen: ChatScreen) -> None:
         self.current_thread += 1
@@ -141,42 +148,35 @@ class Logic:
         self.generating = False
         return True
 
-    async def stream_response(self, response_widget: Response, request_text: str, thread: str) -> None:
-        """Worker method for streaming tokens from the active agent to a response widget.
+
+class Logic:
+    """Top-level application logic."""
+
+    def __init__(
+        self,
+        username: str | None = None,
+        application_start_time: float | None = None,
+        sqlite_db: str | Path = dirs.DATA_DIR / "checkpoints.sqlite3",
+    ) -> None:
+        """Initialize the application logic.
 
         Args:
-            response_widget (Response): Target response widget for streamed tokens.
-            request_text (str): Text of the user request.
+            username (str | None, optional): The username provided as a command line argument. Defaults to None.
+            application_start_time (float | None, optional): The time when the application started. Defaults to None.
+            sqlite_connection_string (str | Path, optional): The connection string for the SQLite database. Defaults to
+                (dirs.DATA_DIR / "checkpoints.sqlite3").
         """
-        if self.agent is None:
-            raise RuntimeError("Agent is not initialized")  # noqa: EM101
-        async with response_widget.stream_writer() as writer:
-            agent_stream = self.agent.astream(
-                # agent_stream = self.agent.stream(
-                {"messages": [HumanMessage(content=request_text)]},
-                {"configurable": {"thread_id": thread}},
-                stream_mode="messages",
-            )
-            try:
-                # for chunk in agent_stream:
-                async for chunk in agent_stream:
-                    # content = str(len(chunk["model"]["messages"]))
-                    content = pprint.pformat(chunk)
-                    if not isinstance(content, str):
-                        response_widget.log.error(
-                            f"Received non-string response from agent of type {type(chunk.content)}"
-                        )
-                        continue
-                    response_widget.log.info(content)
-                    await writer.write(content)
-            except StoppedStreamError as e:
-                # response_widget.notify(f"Stopped by user: {e}")
-                response_widget.set_shown_object(e)
-            except LangChainException as e:
-                # response_widget.notify(f"Error: {e}")
-                response_widget.set_shown_object(e)
-            # finally:
-            # await agent_stream.aclose()
+        self.logic_start_time = time.time()
+        self.username = username
+        self.application_start_time = application_start_time
+        self.sqlite_db = sqlite_db
+
+    @asynccontextmanager
+    async def runtime(self, app_like: AppLike) -> AsyncIterator[Runtime]:
+        """Returns a runtime context for the application."""
+        # TODO: Do I need to set check_same_thread=False in aiosqlite.connect?
+        async with aiosqlite.connect(database=self.sqlite_db) as conn:
+            yield Runtime(self, conn, app_like)
 
     def probe_os(self) -> str:
         """Returns the OS name (eg 'Linux' or 'Windows'), the system name (eg 'Java'), or an empty string if unknown."""

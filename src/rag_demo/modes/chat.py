@@ -147,10 +147,12 @@ class Response(LogicProviderWidget):
 
     def clear_shown_object(self) -> None:
         self._object_to_show = self.__object_to_show_sentinel
+        self.query_one("#object-view", Pretty).display = False
         if self.show_raw:
-            self.query_one("#show-raw", Button).display = True
+            self.query_one("#raw-view", Label).display = True
         else:
             self.query_one("#markdown-view", Markdown).display = True
+        self.query_one("#show-raw", Button).display = True
 
     @asynccontextmanager
     async def stream_writer(self) -> AsyncIterator[ResponseWriter]:
@@ -160,7 +162,7 @@ class Response(LogicProviderWidget):
             ResponseWriteInProgressError: Raised when there is already an open stream.
 
         Yields:
-            ResponseWriter: _description_
+            ResponseWriter: The new stream writer.
         """
         if self._stream is not None:
             raise ResponseStreamInProgressError
@@ -262,15 +264,15 @@ class ChatScreen(LogicProviderScreen):
         self.query_one("#new-request", Input).focus()
         self.query_one("#chats", VerticalScroll).anchor()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events."""
         if event.button.id == "new-conversation":
-            self.logic.new_conversation(self)
+            (await self.runtime()).new_conversation(self)
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle submission of new requests."""
         if event.input.id == "new-request":
-            accepted = await self.logic.submit_request(self, event.value)
+            accepted = await (await self.runtime()).submit_request(self, event.value)
             if accepted:
                 self.query_one("#new-request", Input).value = ""
 

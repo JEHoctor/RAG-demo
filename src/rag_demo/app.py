@@ -1,12 +1,16 @@
-import time
+from __future__ import annotations
+
+import asyncio
 from pathlib import Path
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from textual.app import App
 from textual.binding import Binding
 
-from rag_demo.logic import Logic
 from rag_demo.modes import ChatScreen, ConfigScreen, HelpScreen
+
+if TYPE_CHECKING:
+    from rag_demo.logic import Logic, Runtime
 
 
 class RAGDemo(App):
@@ -36,13 +40,19 @@ class RAGDemo(App):
         """
         super().__init__()
         self.logic = logic
+        self._runtime_future: asyncio.Future[Runtime] = asyncio.Future()
 
     async def on_mount(self) -> None:
         """Set the initial mode to chat and initialize async parts of the logic."""
-        self.log.info("Testing testing 1 2 3")
         self.switch_mode("chat")
-        self.run_worker(self.logic.main_worker(self))
-        await self.logic.async_init()
-        self.log.info(f"Application started in {time.time() - self.logic.application_start_time:.4f}s")
-        for name, time_ in self.logic.logic_init_times.items():
-            self.log.info(f"{name}: {time_:.4f}s")
+        self.run_worker(self._hold_runtime())
+
+    async def _hold_runtime(self) -> None:
+        async with self.logic.runtime(app_like=self) as runtime:
+            self._runtime_future.set_result(runtime)
+            # Pause the task until Textual cancels it when the application closes.
+            await asyncio.Event().wait()
+
+    async def runtime(self) -> Runtime:
+        """Returns the application runtime logic."""
+        return await self._runtime_future

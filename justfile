@@ -42,11 +42,11 @@ console-info:
 
 # Run the chat command from PyPI
 chat-pypi:
-    uv tool run --no-cache --from=jehoctor-rag-demo chat
+    uv tool run --no-cache --torch-backend=auto --from=jehoctor-rag-demo chat
 
 # Run the chat command from TestPyPI
 chat-testpypi:
-    uv tool run --no-cache --index=https://test.pypi.org/simple/ --from=jehoctor-rag-demo chat
+    uv tool run --no-cache --torch-backend=auto --index=https://test.pypi.org/simple/ --from=jehoctor-rag-demo chat
 
 # Test
 test:

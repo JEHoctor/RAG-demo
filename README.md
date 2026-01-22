@@ -37,6 +37,9 @@ uv run textual serve chat
 
 ## Run from the latest version on PyPI
 
+TODO: test uv automatic torch backend selection:
+https://docs.astral.sh/uv/guides/integration/pytorch/#automatic-backend-selection
+
 Run in a terminal:
 ```bash
 uvx --from=jehoctor-rag-demo chat

@@ -27,6 +27,7 @@ from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from rag_demo import dirs
+from rag_demo.db import AtomicIDManager
 from rag_demo.modes.chat import Response, StoppedStreamError
 
 if TYPE_CHECKING:
@@ -56,13 +57,20 @@ class AppLike(Protocol):
 class Runtime:
     """The application logic with asynchronously initialized resources."""
 
-    def __init__(self, logic: Logic, conn: aiosqlite.Connection, app_like: AppLike) -> None:
+    def __init__(
+        self,
+        logic: Logic,
+        checkpoints_conn: aiosqlite.Connection,
+        thread_id_manager: AtomicIDManager,
+        app_like: AppLike,
+    ) -> None:
         self.runtime_start_time = time.time()
         self.logic = logic
-        self.conn = conn
+        self.checkpoints_conn = checkpoints_conn
+        self.thread_id_manager = thread_id_manager
         self.app_like = app_like
 
-        self.current_thread = 1
+        self.current_thread: int | None = None
         self.generating = False
 
         if self.logic.probe_ollama() is not None:
@@ -92,7 +100,7 @@ class Runtime:
         self.agent = create_agent(
             model=self.llm,
             system_prompt="You are a helpful assistant.",
-            checkpointer=AsyncSqliteSaver(conn),
+            checkpointer=AsyncSqliteSaver(self.checkpoints_conn),
         )
 
     def get_rag_datasets(self) -> None:
@@ -113,6 +121,7 @@ class Runtime:
             request_text (str): Text of the user request.
             thread (str): ID of the current thread.
         """
+        self.generating = True
         async with response_widget.stream_writer() as writer:
             agent_stream = self.agent.astream(
                 {"messages": [HumanMessage(content=request_text)]},
@@ -133,19 +142,23 @@ class Runtime:
                 response_widget.set_shown_object(e)
             except LangChainException as e:
                 response_widget.set_shown_object(e)
+        self.generating = False
 
     def new_conversation(self, chat_screen: ChatScreen) -> None:
-        self.current_thread += 1
+        self.current_thread = None
         chat_screen.clear_chats()
 
     async def submit_request(self, chat_screen: ChatScreen, request_text: str) -> bool:
         if self.generating:
             return False
         self.generating = True
+        if self.current_thread is None:
+            chat_screen.log.info("Starting new thread")
+            self.current_thread = await self.thread_id_manager.claim_next_id()
+            chat_screen.log.info("Claimed thread id", self.current_thread)
         chat_screen.new_request(request_text)
         response = chat_screen.new_response()
         chat_screen.run_worker(self.stream_response(response, request_text, str(self.current_thread)))
-        self.generating = False
         return True
 
 
@@ -156,27 +169,33 @@ class Logic:
         self,
         username: str | None = None,
         application_start_time: float | None = None,
-        sqlite_db: str | Path = dirs.DATA_DIR / "checkpoints.sqlite3",
+        checkpoints_sqlite_db: str | Path = dirs.DATA_DIR / "checkpoints.sqlite3",
+        app_sqlite_db: str | Path = dirs.DATA_DIR / "app.sqlite3",
     ) -> None:
         """Initialize the application logic.
 
         Args:
             username (str | None, optional): The username provided as a command line argument. Defaults to None.
             application_start_time (float | None, optional): The time when the application started. Defaults to None.
-            sqlite_connection_string (str | Path, optional): The connection string for the SQLite database. Defaults to
-                (dirs.DATA_DIR / "checkpoints.sqlite3").
+            checkpoints_sqlite_db (str | Path, optional): The connection string for the SQLite database used for
+                Langchain checkpointing. Defaults to (dirs.DATA_DIR / "checkpoints.sqlite3").
+            app_sqlite_db (str | Path, optional): The connection string for the SQLite database used for application
+                state such a thread metadata. Defaults to (dirs.DATA_DIR / "app.sqlite3").
         """
         self.logic_start_time = time.time()
         self.username = username
         self.application_start_time = application_start_time
-        self.sqlite_db = sqlite_db
+        self.checkpoints_sqlite_db = checkpoints_sqlite_db
+        self.app_sqlite_db = app_sqlite_db
 
     @asynccontextmanager
     async def runtime(self, app_like: AppLike) -> AsyncIterator[Runtime]:
         """Returns a runtime context for the application."""
         # TODO: Do I need to set check_same_thread=False in aiosqlite.connect?
-        async with aiosqlite.connect(database=self.sqlite_db) as conn:
-            yield Runtime(self, conn, app_like)
+        async with aiosqlite.connect(database=self.checkpoints_sqlite_db) as checkpoints_conn:
+            id_manager = AtomicIDManager(self.app_sqlite_db)
+            await id_manager.initialize()
+            yield Runtime(self, checkpoints_conn, id_manager, app_like)
 
     def probe_os(self) -> str:
         """Returns the OS name (eg 'Linux' or 'Windows'), the system name (eg 'Java'), or an empty string if unknown."""

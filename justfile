@@ -24,12 +24,16 @@ publish-test: clean build
 chat:
     uv run chat
 
-# Run the chat command in Textual dev mode
+# Run the chat command in dev mode
 chat-dev:
     uv run textual run --dev -c chat
 
 # Run the chat command in a web browser
 serve:
+    uv run textual serve chat
+
+# Run the chat command in a web browser in dev mode
+serve-dev:
     uv run textual serve --dev chat
 
 # Open a Textual dev console

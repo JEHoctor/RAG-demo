@@ -42,12 +42,12 @@ https://docs.astral.sh/uv/guides/integration/pytorch/#automatic-backend-selectio
 
 Run in a terminal:
 ```bash
-uvx --from=jehoctor-rag-demo chat
+uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest chat
 ```
 
 Or run in a web browser:
 ```bash
-uvx --from=jehoctor-rag-demo textual serve chat
+uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest textual serve chat
 ```
 
 ## CUDA acceleration via Llama.cpp

@@ -1,5 +1,8 @@
 set shell := ["bash", "-c"]
 
+chat_test_image := "jehoctor/chat-test-image"
+uv_cache_dir := `uv cache dir 2>/dev/null || echo ~/.cache/uv`
+
 # List available commands
 default:
     @just --list
@@ -46,11 +49,39 @@ console-info:
 
 # Run the chat command from PyPI
 chat-pypi:
-    uv tool run --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest chat
+    uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest chat
 
 # Run the chat command from TestPyPI
 chat-testpypi:
-    uv tool run --no-cache --torch-backend=auto --index=https://test.pypi.org/simple/ --index-strategy=unsafe-best-match --from=jehoctor-rag-demo@latest chat
+    uvx --no-cache --torch-backend=auto --index=https://test.pypi.org/simple/ --index-strategy=unsafe-best-match --from=jehoctor-rag-demo@latest chat
+
+# Build the container image for running from PyPI
+build-podman-image:
+    podman build --format docker -t {{chat_test_image}} podman/test-chat-pypi/
+
+# Run the chat command from PyPI in a container
+chat-podman:
+    podman run --rm -it --init \
+        -v {{uv_cache_dir}}:/home/user/.cache/uv:Z \
+        {{chat_test_image}}
+
+# Run the chat command from PyPI in a container, isolated from the host uv cache
+chat-podman-no-cache:
+    podman run --rm -it --init \
+        {{chat_test_image}}
+
+# Run a shell in a container from the chat-podman image
+shell-podman:
+    podman run --rm -it --init \
+        -v {{uv_cache_dir}}:/home/user/.cache/uv:Z \
+        --entrypoint=/bin/bash \
+        {{chat_test_image}}
+
+# Run a shell in a container from the chat-podman image, isolated from the host uv cache
+shell-podman-no-cache:
+    podman run --rm -it --init \
+        --entrypoint=/bin/bash \
+        {{chat_test_image}}
 
 # Test
 test:

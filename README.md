@@ -30,6 +30,20 @@ Windows Terminal should be fine as far as I know.
  3. Ollama installed on your system if you have a GPU
  4. Run RAG-demo on a more capable (bigger GPU) machine over SSH if you can. It is a terminal app after all.
 
+## Run the latest version
+
+TODO: test uv automatic torch backend selection:
+https://docs.astral.sh/uv/guides/integration/pytorch/#automatic-backend-selection
+
+Run in a terminal:
+```bash
+uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest chat
+```
+
+Or run in a web browser:
+```bash
+uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest textual serve chat
+```
 
 ## Run from the repository
 
@@ -43,21 +57,6 @@ uv run chat
 Or run in a web browser:
 ```bash
 uv run textual serve chat
-```
-
-## Run from the latest version on PyPI
-
-TODO: test uv automatic torch backend selection:
-https://docs.astral.sh/uv/guides/integration/pytorch/#automatic-backend-selection
-
-Run in a terminal:
-```bash
-uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest chat
-```
-
-Or run in a web browser:
-```bash
-uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest textual serve chat
 ```
 
 ## CUDA acceleration via Llama.cpp

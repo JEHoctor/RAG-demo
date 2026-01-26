@@ -13,6 +13,7 @@ Sun-warmed stone awaits.
 
 
 def test_parser_removes_softbreaks() -> None:
+    """Test that our parser and a generic parser differ only in producing hardbreak and softbreak tokens respectively."""
     parser = markdown.parser_factory()
     assert isinstance(parser, MarkdownIt)
     comparison_parser = MarkdownIt("gfm-like")
@@ -40,7 +41,8 @@ def test_parser_removes_softbreaks() -> None:
         comparison_result_token = comparison_result[index]
         stack.append((result, comparison_result, index + 1))
         if result_token.children is not None or comparison_result_token.children is not None:
-            assert result_token.children is not None and comparison_result_token.children is not None
+            assert result_token.children is not None
+            assert comparison_result_token.children is not None
             stack.append((result_token.children, comparison_result_token.children, 0))
             result_token.children = None
             comparison_result_token.children = None

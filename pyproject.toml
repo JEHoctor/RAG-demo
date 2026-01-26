@@ -82,7 +82,6 @@ module-name = "rag_demo"
 line-length = 120
 
 [tool.ruff.lint]
-per-file-ignores = { "__init__.py" = ["F401"] }  # Ignore unused-import in all __init__.py files.
 select = ["ALL"]
 ignore = [
     "E501",   # Handled by ruff format (line-too-long)
@@ -91,6 +90,15 @@ ignore = [
     "D203",   # Conflicts with Google style D211/D212
     "ANN101", # Missing type annotation for self
     "ANN102", # Missing type annotation for cls
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Ignore unused-import in all __init__.py files.
+"tests/*" = [
+    "S101",    # Assert statements are allowed in tests.
+    "INP001",  # No need to create __init__.py files in the tests/ directory; only pytest runs the tests.
+    "C419",    # It's OK to use extra list comprehensions in tests to make the output more informative.
+    "PLR2004", # There are going to be some magic values in the tests. It's OK.
 ]
 
 [tool.ruff.lint.pydocstyle]

@@ -99,4 +99,11 @@ lint:
 
 # Type check
 typecheck:
+    uv run ty check src/ tests/
+
+# Type check with mypy
+typecheck-alternate:
     uv run mypy src/ tests/
+
+# Type check with all type checkers
+typecheck-all: typecheck typecheck-alternate

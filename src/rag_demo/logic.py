@@ -26,7 +26,7 @@ from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 try:
-    import llama_cpp
+    import llama_cpp  # ty:ignore[unresolved-import]
 
     LLAMA_AVAILABLE = True
 except ImportError:
@@ -91,7 +91,7 @@ class Runtime:
                 revision="d32f8c040ea3b516330eeb75b72bcc2d3a780ab7",
             )
             self.llm = ChatLlamaCpp(model_path=model_path, verbose=False)
-            self.embed = LlamaCppEmbeddings(model_path=embedding_model_path, verbose=False)  # pyright: ignore[reportCallIssue]
+            self.embed = LlamaCppEmbeddings(model_path=embedding_model_path, verbose=False)
         elif self.logic.probe_ollama() is not None:
             ollama.pull("gemma3:latest")  # 3.3GB
             ollama.pull("embeddinggemma:latest")  # 621MB

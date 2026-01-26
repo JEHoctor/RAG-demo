@@ -4,6 +4,7 @@
         "appauthor",
         "appname",
         "astream",
+        "asyncio",
         "bartowski",
         "chromadb",
         "CUDA",
@@ -37,7 +38,6 @@
         "userns",
         "wezterm"
     ],
-    "mypy-type-checker.interpreter": ["uv", "run", "python"],
     "python.defaultInterpreterPath": ".venv/bin/python",
     "autoDocstring.docstringFormat": "google",
     "autoDocstring.guessTypes": true,

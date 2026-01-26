@@ -32,9 +32,6 @@ Windows Terminal should be fine as far as I know.
 
 ## Run the latest version
 
-TODO: test uv automatic torch backend selection:
-https://docs.astral.sh/uv/guides/integration/pytorch/#automatic-backend-selection
-
 Run in a terminal:
 ```bash
 uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest chat
@@ -76,3 +73,11 @@ On an Apple Silicon machine, make sure `uv` runs an ARM interpreter as this shou
 Remember that you have to keep Ollama up-to-date manually on Linux.
 A recent version of Ollama (v0.11.10 or later) is required to run the [embedding model we use](https://ollama.com/library/embeddinggemma).
 See this FAQ: https://docs.ollama.com/faq#how-can-i-upgrade-ollama.
+
+## Project feature roadmap
+
+- ❌ RAG functionality
+- ❌ torch inference via the Langchain local Hugging Face inference integration
+- ❌ uv automatic torch backend selection (see [the docs](https://docs.astral.sh/uv/guides/integration/pytorch/#automatic-backend-selection))
+- ❌ OpenAI integration
+- ❌ Anthropic integration

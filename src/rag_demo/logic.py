@@ -11,7 +11,6 @@ import aiosqlite
 import cpuinfo
 import httpx
 import huggingface_hub
-import llama_cpp
 import ollama
 import psutil
 import pynvml
@@ -25,6 +24,13 @@ from langchain_community.embeddings import LlamaCppEmbeddings
 from langchain_core.exceptions import LangChainException
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+try:
+    import llama_cpp
+
+    LLAMA_AVAILABLE = True
+except ImportError:
+    LLAMA_AVAILABLE = False
 
 from rag_demo import dirs
 from rag_demo.db import AtomicIDManager
@@ -73,17 +79,7 @@ class Runtime:
         self.current_thread: int | None = None
         self.generating = False
 
-        if self.logic.probe_ollama() is not None:
-            ollama.pull("gemma3:latest")  # 3.3GB
-            ollama.pull("embeddinggemma:latest")  # 621MB
-            self.llm = ChatOllama(
-                model="gemma3:latest",
-                validate_model_on_init=True,
-                temperature=0.5,
-                num_predict=4096,
-            )
-            self.embed = OllamaEmbeddings(model="embeddinggemma:latest")
-        else:
+        if self.logic.probe_llama_available():
             model_path = hf_hub_download(
                 repo_id="bartowski/google_gemma-3-4b-it-GGUF",
                 filename="google_gemma-3-4b-it-Q6_K_L.gguf",  # 3.35GB
@@ -96,6 +92,20 @@ class Runtime:
             )
             self.llm = ChatLlamaCpp(model_path=model_path, verbose=False)
             self.embed = LlamaCppEmbeddings(model_path=embedding_model_path, verbose=False)  # pyright: ignore[reportCallIssue]
+        elif self.logic.probe_ollama() is not None:
+            ollama.pull("gemma3:latest")  # 3.3GB
+            ollama.pull("embeddinggemma:latest")  # 621MB
+            self.llm = ChatOllama(
+                model="gemma3:latest",
+                validate_model_on_init=True,
+                temperature=0.5,
+                num_predict=4096,
+            )
+            self.embed = OllamaEmbeddings(model="embeddinggemma:latest")
+        else:
+            raise NotImplementedError(
+                "TODO: Implement local Hugging Face torch inference with automatic uv backend selection."
+            )
 
         self.agent = create_agent(
             model=self.llm,
@@ -217,9 +227,13 @@ class Logic:
         """Returns the amount of free space in the root directory (in bytes)."""
         return psutil.disk_usage("/").free
 
+    def probe_llama_available(self) -> bool:
+        """Returns True if llama-cpp-python is installed, False otherwise."""
+        return LLAMA_AVAILABLE
+
     def probe_llamacpp_gpu_support(self) -> bool:
-        """Returns True if LlamaCpp supports GPU offloading, False otherwise."""
-        return llama_cpp.llama_supports_gpu_offload()
+        """Returns True if the installed version of llama-cpp-python supports GPU offloading, False otherwise."""
+        return LLAMA_AVAILABLE and llama_cpp.llama_supports_gpu_offload()
 
     def probe_huggingface_free_cache_space(self) -> int | None:
         """Returns the amount of free space in the Hugging Face cache (in bytes), or None if it can't be determined."""

@@ -62,7 +62,8 @@ build-podman-image:
 # Run the chat command from PyPI in a container
 chat-podman:
     podman run --rm -it --init \
-        -v {{uv_cache_dir}}:/home/user/.cache/uv:Z \
+        --userns=keep-id \
+        -v {{uv_cache_dir}}:/home/ubuntu/.cache/uv:Z \
         {{chat_test_image}}
 
 # Run the chat command from PyPI in a container, isolated from the host uv cache
@@ -73,7 +74,8 @@ chat-podman-no-cache:
 # Run a shell in a container from the chat-podman image
 shell-podman:
     podman run --rm -it --init \
-        -v {{uv_cache_dir}}:/home/user/.cache/uv:Z \
+        --userns=keep-id \
+        -v {{uv_cache_dir}}:/home/ubuntu/.cache/uv:Z \
         --entrypoint=/bin/bash \
         {{chat_test_image}}
 

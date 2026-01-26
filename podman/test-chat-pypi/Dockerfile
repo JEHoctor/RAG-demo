@@ -10,12 +10,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Create unprivileged user
-RUN useradd -m -s /bin/bash user
-
 # Switch to unprivileged user
-USER user
-WORKDIR /home/user
+USER ubuntu
+WORKDIR /home/ubuntu
 
 # Install uv
 RUN set -eo pipefail && \
@@ -24,7 +21,7 @@ RUN set -eo pipefail && \
     echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc
 
 # Set up entrypoint
-COPY --chown=user:user entrypoint.sh /home/user/entrypoint.sh
-RUN chmod +x /home/user/entrypoint.sh
+COPY --chown=ubuntu:ubuntu entrypoint.sh /home/ubuntu/entrypoint.sh
+RUN chmod +x /home/ubuntu/entrypoint.sh
 
-ENTRYPOINT ["/home/user/entrypoint.sh"]
+ENTRYPOINT ["/home/ubuntu/entrypoint.sh"]

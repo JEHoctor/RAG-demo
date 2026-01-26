@@ -22,6 +22,7 @@
         "llamacpp",
         "nvml",
         "Ollama",
+        "pipefail",
         "platformdirs",
         "psutil",
         "pydocstyle",
@@ -33,6 +34,7 @@
         "tcss",
         "testpypi",
         "unsloth",
+        "userns",
         "wezterm"
     ],
     "mypy-type-checker.interpreter": ["uv", "run", "python"],

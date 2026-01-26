@@ -49,11 +49,11 @@ console-info:
 
 # Run the chat command from PyPI
 chat-pypi:
-    uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest chat
+    uvx --torch-backend=auto --from=jehoctor-rag-demo@latest chat
 
 # Run the chat command from TestPyPI
 chat-testpypi:
-    uvx --no-cache --torch-backend=auto --index=https://test.pypi.org/simple/ --index-strategy=unsafe-best-match --from=jehoctor-rag-demo@latest chat
+    uvx --torch-backend=auto --index=https://test.pypi.org/simple/ --index-strategy=unsafe-best-match --from=jehoctor-rag-demo@latest chat
 
 # Build the container image for running from PyPI
 build-podman-image:

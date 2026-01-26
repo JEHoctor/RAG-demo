@@ -34,12 +34,12 @@ Windows Terminal should be fine as far as I know.
 
 Run in a terminal:
 ```bash
-uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest chat
+uvx --torch-backend=auto --from=jehoctor-rag-demo@latest chat
 ```
 
 Or run in a web browser:
 ```bash
-uvx --no-cache --torch-backend=auto --from=jehoctor-rag-demo@latest textual serve chat
+uvx --torch-backend=auto --from=jehoctor-rag-demo@latest textual serve chat
 ```
 
 ## Run from the repository

@@ -4,7 +4,7 @@ Chat with (a small portion of) Wikipedia
 
 ⚠️ RAG functionality is still under development. ⚠️
 
-![app screenshot](screenshots/screenshot_062f205a.png "App screenshot (this AI response is not accurate)")
+![app screenshot](screenshots/screenshot_0.2.0.png "App screenshot")
 
 ## Requirements
 

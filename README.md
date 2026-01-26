@@ -61,12 +61,13 @@ uv run textual serve chat
 If you have an NVIDIA GPU with CUDA and build tools installed, you might be able to get CUDA acceleration without installing Ollama.
 
 ```bash
-CMAKE_ARGS="-DGGML_CUDA=on" uv run chat
+CMAKE_ARGS="-DGGML_CUDA=on" uv run --extra=llamacpp chat
 ```
 
 ## Metal acceleration via Llama.cpp (on Apple Silicon)
 
 On an Apple Silicon machine, make sure `uv` runs an ARM interpreter as this should cause it to install Llama.cpp with Metal support.
+Also, run with the extra group `llamacpp`.
 
 ## Ollama on Linux
 

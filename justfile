@@ -85,7 +85,7 @@ shell-podman-no-cache:
 
 # Test
 test:
-    uv run pytest -vv --cov=src --cov-report=term --cov-fail-under=5 tests/
+    uv run --group=test --no-dev pytest -vv --cov=src --cov-report=term --cov-fail-under=5 tests/
 
 # Format
 format:

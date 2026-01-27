@@ -30,6 +30,7 @@ dependencies = [
     "pydantic>=2.12.4",
     "pyperclip>=1.11.0",
     "textual>=6.5.0",
+    "transformers[torch]>=4.57.6",
     "typer>=0.20.0",
 ]
 

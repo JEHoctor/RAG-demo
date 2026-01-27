@@ -23,12 +23,13 @@ In particular, on macOS consider using [iTerm2](https://iterm2.com/) instead of 
 On Linux you might want to try [kitty](https://sw.kovidgoyal.net/kitty/), [wezterm](https://wezterm.org/), [alacritty](https://alacritty.org/), or [ghostty](https://ghostty.org/), instead of the terminal that came with your desktop environment ([reason](https://darren.codes/posts/textual-copy-paste/)).
 Windows Terminal should be fine as far as I know.
 
-## Optional stuff that could make your experience better
+### Optional dependencies
 
  1. [Hugging Face login](https://huggingface.co/docs/huggingface_hub/quick-start#login)
  2. API key for your favorite LLM provider (support coming soon)
  3. Ollama installed on your system if you have a GPU
  4. Run RAG-demo on a more capable (bigger GPU) machine over SSH if you can. It is a terminal app after all.
+ 5. A C compiler if you want to build Llama.cpp from source.
 
 ## Run the latest version
 
@@ -40,20 +41,6 @@ uvx --torch-backend=auto --from=jehoctor-rag-demo@latest chat
 Or run in a web browser:
 ```bash
 uvx --torch-backend=auto --from=jehoctor-rag-demo@latest textual serve chat
-```
-
-## Run from the repository
-
-First, clone this repository. Then, run one of the options below.
-
-Run in a terminal:
-```bash
-uv run chat
-```
-
-Or run in a web browser:
-```bash
-uv run textual serve chat
 ```
 
 ## CUDA acceleration via Llama.cpp
@@ -87,3 +74,17 @@ See this FAQ: https://docs.ollama.com/faq#how-can-i-upgrade-ollama.
 - ❌ uv automatic torch backend selection (see [the docs](https://docs.astral.sh/uv/guides/integration/pytorch/#automatic-backend-selection))
 - ❌ OpenAI integration
 - ❌ Anthropic integration
+
+## Run from the repository
+
+First, clone this repository. Then, run one of the options below.
+
+Run in a terminal:
+```bash
+uv run chat
+```
+
+Or run in a web browser:
+```bash
+uv run textual serve chat
+```

@@ -68,6 +68,11 @@ CMAKE_ARGS="-DGGML_CUDA=on" uv run --extra=llamacpp chat
 
 On an Apple Silicon machine, make sure `uv` runs an ARM interpreter as this should cause it to install Llama.cpp with Metal support.
 Also, run with the extra group `llamacpp`.
+Try this:
+
+```bash
+uvx --python-platform=aarch64-apple-darwin --torch-backend=auto --from=jehoctor-rag-demo[llamacpp]@latest chat
+```
 
 ## Ollama on Linux
 

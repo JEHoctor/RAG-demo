@@ -69,6 +69,7 @@ explicit = true
 [tool.uv.sources]
 llama-cpp-python = [
     { index = "llama-cpp-metal", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
+    { index = "llama-cpp-metal", marker = "platform_machine == 'aarch64' and sys_platform == 'darwin'" },
 ]
 
 [build-system]

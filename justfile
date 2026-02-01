@@ -99,7 +99,8 @@ lint:
 
 # Type check
 typecheck:
-    uv run ty check src/ tests/
+    uv run ty check src/
+    uv run --group=test ty check tests/
 
 # Type check with mypy
 typecheck-alternate:

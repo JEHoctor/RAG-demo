@@ -6,6 +6,7 @@
         "astream",
         "asyncio",
         "bartowski",
+        "bitsandbytes",
         "chromadb",
         "CUDA",
         "deepseek",
@@ -36,7 +37,8 @@
         "testpypi",
         "unsloth",
         "userns",
-        "wezterm"
+        "wezterm",
+        "xformers"
     ],
     "python.defaultInterpreterPath": ".venv/bin/python",
     "autoDocstring.docstringFormat": "google",

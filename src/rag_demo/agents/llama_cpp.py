@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Final
 
@@ -24,23 +25,20 @@ if TYPE_CHECKING:
 class LlamaCppAgent:
     """An LLM agent powered by Llama.cpp."""
 
-    def __init__(self, checkpoints_conn: aiosqlite.Connection) -> None:
+    def __init__(
+        self,
+        checkpoints_conn: aiosqlite.Connection,
+        model_path: str,
+        embedding_model_path: str,
+    ) -> None:
         """Initialize the LlamaCppAgent.
 
         Args:
-            checkpoints_conn (aiosqlite.Connection): Asynchronous connection to SQLite db for checkpoints.
+            checkpoints_conn (aiosqlite.Connection): Connection to SQLite checkpoint database.
+            model_path (str): Path to Llama.cpp model.
+            embedding_model_path (str): Path to Llama.cpp embedding model.
         """
         self.checkpoints_conn = checkpoints_conn
-        model_path = hf_hub_download(
-            repo_id="bartowski/google_gemma-3-4b-it-GGUF",
-            filename="google_gemma-3-4b-it-Q6_K_L.gguf",  # 3.35GB
-            revision="71506238f970075ca85125cd749c28b1b0eee84e",
-        )
-        embedding_model_path = hf_hub_download(
-            repo_id="CompendiumLabs/bge-small-en-v1.5-gguf",
-            filename="bge-small-en-v1.5-q8_0.gguf",  # 36.8MB
-            revision="d32f8c040ea3b516330eeb75b72bcc2d3a780ab7",
-        )
         self.llm = ChatLlamaCpp(model_path=model_path, verbose=False)
         self.embed = LlamaCppEmbeddings(model_path=embedding_model_path, verbose=False)
         self.agent = create_agent(
@@ -76,6 +74,20 @@ class LlamaCppAgent:
                 app.log.error("Received message chunk of type", type(message_chunk))
 
 
+def _hf_downloads() -> tuple[str, str]:
+    model_path = hf_hub_download(
+        repo_id="bartowski/google_gemma-3-4b-it-GGUF",
+        filename="google_gemma-3-4b-it-Q6_K_L.gguf",  # 3.35GB
+        revision="71506238f970075ca85125cd749c28b1b0eee84e",
+    )
+    embedding_model_path = hf_hub_download(
+        repo_id="CompendiumLabs/bge-small-en-v1.5-gguf",
+        filename="bge-small-en-v1.5-q8_0.gguf",  # 36.8MB
+        revision="d32f8c040ea3b516330eeb75b72bcc2d3a780ab7",
+    )
+    return model_path, embedding_model_path
+
+
 class LlamaCppAgentProvider:
     """Create LLM agents using Llama.cpp."""
 
@@ -89,9 +101,13 @@ class LlamaCppAgentProvider:
             checkpoints_sqlite_db (str | Path): Connection string for SQLite database used for LangChain checkpoints.
         """
         if probe.probe_llama_available():
+            loop = asyncio.get_running_loop()
+            model_path, embedding_model_path = await loop.run_in_executor(None, _hf_downloads)
             async with aiosqlite.connect(database=checkpoints_sqlite_db) as checkpoints_conn:
                 yield LlamaCppAgent(
                     checkpoints_conn=checkpoints_conn,
+                    model_path=model_path,
+                    embedding_model_path=embedding_model_path,
                 )
         else:
             yield None

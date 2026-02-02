@@ -10,11 +10,12 @@ if TYPE_CHECKING:
 
 
 class LogicProvider(Protocol):
-    """ABC for classes that contain application logic."""
+    """Protocol for classes that contain application logic."""
 
     logic: Logic
 
-    async def runtime(self) -> Runtime: ...
+    async def runtime(self) -> Runtime:
+        """Returns the application runtime of the parent app."""
 
 
 class LogicProviderScreen(Screen):

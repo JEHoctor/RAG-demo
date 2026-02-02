@@ -111,3 +111,7 @@ typecheck-alternate:
 
 # Type check with all type checkers
 typecheck-all: typecheck typecheck-alternate
+
+# Show outdated packages
+outdated:
+    uv run uv-outdated --show-headers --group-by-ancestor

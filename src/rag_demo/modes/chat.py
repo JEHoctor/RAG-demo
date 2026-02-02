@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pyperclip
 from textual.containers import HorizontalGroup, VerticalGroup, VerticalScroll
@@ -116,7 +116,7 @@ class Response(LogicProviderWidget):
         self.set_reactive(Response.content, content)
         self._stream: ResponseWriter | None = None
         self.__object_to_show_sentinel = object()
-        self._object_to_show: Any = self.__object_to_show_sentinel
+        self._object_to_show: object = self.__object_to_show_sentinel
 
     def compose(self) -> ComposeResult:
         """Compose the initial content of the widget."""
@@ -137,7 +137,8 @@ class Response(LogicProviderWidget):
         self.query_one("#object-view", Pretty).display = False
         self.query_one("#stop", Button).display = False
 
-    def set_shown_object(self, obj: Any) -> None:  # noqa: ANN401
+    def set_shown_object(self, obj: object) -> None:
+        """Show an object using a Pretty Widget instead of showing markdown or raw response content."""
         self._object_to_show = obj
         self.query_one("#markdown-view", Markdown).display = False
         self.query_one("#raw-view", Label).display = False
@@ -146,6 +147,7 @@ class Response(LogicProviderWidget):
         self.query_one("#object-view", Pretty).display = True
 
     def clear_shown_object(self) -> None:
+        """Stop showing an object in the widget."""
         self._object_to_show = self.__object_to_show_sentinel
         self.query_one("#object-view", Pretty).display = False
         if self.show_raw:

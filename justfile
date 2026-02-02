@@ -1,4 +1,5 @@
 set shell := ["bash", "-c"]
+set positional-arguments
 
 chat_test_image := "jehoctor/chat-test-image"
 uv_cache_dir := `uv cache dir 2>/dev/null || echo ~/.cache/uv`
@@ -24,20 +25,20 @@ publish-test: clean build
     uv publish ${JEHOCTOR_RAG_DEMO_TEST_PUBLISH_TOKEN:+--token=$JEHOCTOR_RAG_DEMO_TEST_PUBLISH_TOKEN} --index testpypi
 
 # Run the chat command
-chat:
-    uv run chat
+chat *ARGS:
+    uv run chat "$@"
 
 # Run the chat command in dev mode
-chat-dev:
-    uv run textual run --dev -c chat
+chat-dev *ARGS:
+    uv run textual run --dev -c chat "$@"
 
 # Run the chat command in a web browser
-serve:
-    uv run textual serve chat
+serve *ARGS:
+    uv run textual serve chat "$@"
 
 # Run the chat command in a web browser in dev mode
-serve-dev:
-    uv run textual serve --dev chat
+serve-dev *ARGS:
+    uv run textual serve --dev chat "$@"
 
 # Open a Textual dev console
 console:
@@ -48,28 +49,30 @@ console-info:
     uv run textual console -x EVENT -x DEBUG -x WARNING -x ERROR -x PRINT -x SYSTEM -x LOGGING -x WORKER
 
 # Run the chat command from PyPI
-chat-pypi:
-    uvx --torch-backend=auto --from=jehoctor-rag-demo@latest chat
+chat-pypi *ARGS:
+    uvx --torch-backend=auto --from=jehoctor-rag-demo@latest chat "$@"
 
 # Run the chat command from TestPyPI
-chat-testpypi:
-    uvx --torch-backend=auto --index=https://test.pypi.org/simple/ --index-strategy=unsafe-best-match --from=jehoctor-rag-demo@latest chat
+chat-testpypi *ARGS:
+    uvx --torch-backend=auto --index=https://test.pypi.org/simple/ --index-strategy=unsafe-best-match --from=jehoctor-rag-demo@latest chat "$@"
 
 # Build the container image for running from PyPI
 build-podman-image:
     podman build --format docker -t {{chat_test_image}} podman/test-chat-pypi/
 
 # Run the chat command from PyPI in a container
-chat-podman:
+chat-podman *ARGS:
     podman run --rm -it --init \
         --userns=keep-id \
         -v {{uv_cache_dir}}:/home/ubuntu/.cache/uv:Z \
-        {{chat_test_image}}
+        {{chat_test_image}} \
+        "$@"
 
 # Run the chat command from PyPI in a container, isolated from the host uv cache
-chat-podman-no-cache:
+chat-podman-no-cache *ARGS:
     podman run --rm -it --init \
-        {{chat_test_image}}
+        {{chat_test_image}} \
+        "$@"
 
 # Run a shell in a container from the chat-podman image
 shell-podman:

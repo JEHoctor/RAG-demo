@@ -19,7 +19,7 @@ from rag_demo.db import AtomicIDManager
 from rag_demo.modes.chat import Response, StoppedStreamError
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Sequence
     from pathlib import Path
 
     from rag_demo.app_protocol import AppProtocol
@@ -139,6 +139,11 @@ class Logic:
         application_start_time: float | None = None,
         checkpoints_sqlite_db: str | Path = dirs.DATA_DIR / "checkpoints.sqlite3",
         app_sqlite_db: str | Path = dirs.DATA_DIR / "app.sqlite3",
+        agent_providers: Sequence[AgentProvider] = (
+            LlamaCppAgentProvider(),
+            OllamaAgentProvider(),
+            HuggingFaceAgentProvider(),
+        ),
     ) -> None:
         """Initialize the application logic.
 
@@ -150,6 +155,13 @@ class Logic:
                 Langchain checkpointing. Defaults to (dirs.DATA_DIR / "checkpoints.sqlite3").
             app_sqlite_db (str | Path, optional): The connection string for the SQLite database used for application
                 state such a thread metadata. Defaults to (dirs.DATA_DIR / "app.sqlite3").
+            agent_providers (Sequence[AgentProvider], optional): Sequence of agent providers in default preference
+                order. If preferred_provider_type is not None, this sequence will be reordered to bring providers of
+                that type to the front, using the original order to break ties. Defaults to (
+                    LlamaCppAgentProvider(),
+                    OllamaAgentProvider(),
+                    HuggingFaceAgentProvider(),
+                ).
         """
         self.logic_start_time = time.time()
         self.username = username
@@ -157,6 +169,7 @@ class Logic:
         self.application_start_time = application_start_time
         self.checkpoints_sqlite_db = checkpoints_sqlite_db
         self.app_sqlite_db = app_sqlite_db
+        self.agent_providers: Sequence[AgentProvider] = agent_providers
 
     @asynccontextmanager
     async def runtime(self, app: AppProtocol) -> AsyncIterator[Runtime]:
@@ -164,23 +177,19 @@ class Logic:
         thread_id_manager = AtomicIDManager(self.app_sqlite_db)
         await thread_id_manager.initialize()
 
-        agent_providers: list[AgentProvider] = [
-            LlamaCppAgentProvider(checkpoints_sqlite_db=self.checkpoints_sqlite_db),
-            OllamaAgentProvider(checkpoints_sqlite_db=self.checkpoints_sqlite_db),
-            HuggingFaceAgentProvider(checkpoints_sqlite_db=self.checkpoints_sqlite_db),
-        ]
+        agent_providers: Sequence[AgentProvider] = self.agent_providers
         if self.preferred_provider_type is not None:
-            preferred_providers: list[AgentProvider] = [
+            preferred_providers: Sequence[AgentProvider] = tuple(
                 ap for ap in agent_providers if ap.type == self.preferred_provider_type
-            ]
+            )
             if len(preferred_providers) == 0:
                 raise UnknownPreferredProviderError(self.preferred_provider_type)
-            agent_providers = [
+            agent_providers = tuple(
                 *preferred_providers,
                 *(ap for ap in agent_providers if ap.type != self.preferred_provider_type),
-            ]
+            )
         for agent_provider in agent_providers:
-            async with agent_provider.get_agent() as agent:
+            async with agent_provider.get_agent(checkpoints_sqlite_db=self.checkpoints_sqlite_db) as agent:
                 if agent is not None:
                     yield Runtime(
                         logic=self,

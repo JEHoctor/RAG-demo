@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Final, Protocol
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from contextlib import AbstractAsyncContextManager
+    from pathlib import Path
 
     from rag_demo.app_protocol import AppProtocol
     from rag_demo.constants import LocalProviderType
@@ -31,5 +32,9 @@ class AgentProvider(Protocol):
 
     type: Final[LocalProviderType]
 
-    def get_agent(self) -> AbstractAsyncContextManager[Agent | None]:
-        """Attempt to create an agent."""
+    def get_agent(self, checkpoints_sqlite_db: str | Path) -> AbstractAsyncContextManager[Agent | None]:
+        """Attempt to create an agent.
+
+        Args:
+            checkpoints_sqlite_db (str | Path): Connection string for SQLite database used for LangChain checkpoints.
+        """

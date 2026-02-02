@@ -81,15 +81,11 @@ class HuggingFaceAgentProvider:
 
     type: Final[LocalProviderType] = LocalProviderType.HUGGING_FACE
 
-    def __init__(self, checkpoints_sqlite_db: str | Path) -> None:
-        """Initialize the HuggingFaceAgentProvider.
+    @asynccontextmanager
+    async def get_agent(self, checkpoints_sqlite_db: str | Path) -> AsyncIterator[HuggingFaceAgent]:
+        """Create a Hugging Face local pipeline agent.
 
         Args:
             checkpoints_sqlite_db (str | Path): Connection string for SQLite database used for LangChain checkpoints.
         """
-        self.checkpoints_sqlite_db = checkpoints_sqlite_db
-
-    @asynccontextmanager
-    async def get_agent(self) -> AsyncIterator[HuggingFaceAgent]:
-        """Create a Hugging Face local pipeline agent."""
-        yield HuggingFaceAgent(self.checkpoints_sqlite_db)
+        yield HuggingFaceAgent(checkpoints_sqlite_db)

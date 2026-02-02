@@ -77,19 +77,15 @@ class OllamaAgentProvider:
 
     type: Final[LocalProviderType] = LocalProviderType.OLLAMA
 
-    def __init__(self, checkpoints_sqlite_db: str | Path) -> None:
-        """Initialize the OllamaAgentProvider.
+    @asynccontextmanager
+    async def get_agent(self, checkpoints_sqlite_db: str | Path) -> AsyncIterator[OllamaAgent | None]:
+        """Attempt to create an Ollama agent.
 
         Args:
             checkpoints_sqlite_db (str | Path): Connection string for SQLite database used for LangChain checkpoints.
         """
-        self.checkpoints_sqlite_db = checkpoints_sqlite_db
-
-    @asynccontextmanager
-    async def get_agent(self) -> AsyncIterator[OllamaAgent | None]:
-        """Attempt to create an Ollama agent."""
         if probe.probe_ollama() is not None:
-            async with aiosqlite.connect(database=self.checkpoints_sqlite_db) as checkpoints_conn:
+            async with aiosqlite.connect(database=checkpoints_sqlite_db) as checkpoints_conn:
                 yield OllamaAgent(checkpoints_conn=checkpoints_conn)
         else:
             yield None

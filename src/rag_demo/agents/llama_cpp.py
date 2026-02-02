@@ -28,7 +28,7 @@ class LlamaCppAgent:
         """Initialize the LlamaCppAgent.
 
         Args:
-            checkpoints_conn (aiosqlite.Connection): _description_
+            checkpoints_conn (aiosqlite.Connection): Asynchronous connection to SQLite db for checkpoints.
         """
         self.checkpoints_conn = checkpoints_conn
         model_path = hf_hub_download(
@@ -81,19 +81,17 @@ class LlamaCppAgentProvider:
 
     type: Final[LocalProviderType] = LocalProviderType.LLAMA_CPP
 
-    def __init__(self, checkpoints_sqlite_db: str | Path) -> None:
-        """Initialize the LlamaCppAgentProvider.
+    @asynccontextmanager
+    async def get_agent(self, checkpoints_sqlite_db: str | Path) -> AsyncIterator[LlamaCppAgent | None]:
+        """Attempt to create a Llama.cpp agent.
 
         Args:
             checkpoints_sqlite_db (str | Path): Connection string for SQLite database used for LangChain checkpoints.
         """
-        self.checkpoints_sqlite_db = checkpoints_sqlite_db
-
-    @asynccontextmanager
-    async def get_agent(self) -> AsyncIterator[LlamaCppAgent | None]:
-        """Attempt to create a Llama.cpp agent."""
         if probe.probe_llama_available():
-            async with aiosqlite.connect(database=self.checkpoints_sqlite_db) as checkpoints_conn:
-                yield LlamaCppAgent(checkpoints_conn=checkpoints_conn)
+            async with aiosqlite.connect(database=checkpoints_sqlite_db) as checkpoints_conn:
+                yield LlamaCppAgent(
+                    checkpoints_conn=checkpoints_conn,
+                )
         else:
             yield None

@@ -20,6 +20,9 @@ RUN set -eo pipefail && \
     echo 'eval "$(uv generate-shell-completion bash)"' >> ~/.bashrc && \
     echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc
 
+# Get a Python 3.12 interpreter so we don't have to download it when we run uv in the container.
+RUN . /home/ubuntu/.local/bin/env; uv python install 3.12
+
 # Set up entrypoint
 COPY --chown=ubuntu:ubuntu entrypoint.sh /home/ubuntu/entrypoint.sh
 RUN chmod +x /home/ubuntu/entrypoint.sh

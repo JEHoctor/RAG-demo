@@ -9,3 +9,4 @@ class LocalProviderType(StrEnum):
     HUGGING_FACE = auto()
     LLAMA_CPP = auto()
     OLLAMA = auto()
+    DUMMY = auto()

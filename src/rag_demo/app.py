@@ -48,7 +48,7 @@ class RAGDemo(App):
         self.run_worker(self._hold_runtime())
 
     async def _hold_runtime(self) -> None:
-        async with self.logic.runtime(app_like=self) as runtime:
+        async with self.logic.runtime(app=self) as runtime:
             self._runtime_future.set_result(runtime)
             # Pause the task until Textual cancels it when the application closes.
             await asyncio.Event().wait()

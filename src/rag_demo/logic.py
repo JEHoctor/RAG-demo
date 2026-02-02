@@ -184,7 +184,7 @@ class Logic:
             )
             if len(preferred_providers) == 0:
                 raise UnknownPreferredProviderError(self.preferred_provider_type)
-            agent_providers = tuple(
+            agent_providers = (
                 *preferred_providers,
                 *(ap for ap in agent_providers if ap.type != self.preferred_provider_type),
             )

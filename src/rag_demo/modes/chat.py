@@ -194,14 +194,14 @@ class Response(LogicProviderWidget):
             try:
                 pyperclip.copy(self.content)
             except pyperclip.PyperclipException as e:
-                self.app.log.error(f"Error copying to clipboard with Pyperclip: {e}")
+                self.app.log.error("Error copying to clipboard with Pyperclip:", e)
             checkpoint2 = time.time()
             self.notify(f"Copied {len(self.content.splitlines())} lines of text to clipboard")
             end = time.time()
-            self.app.log.info(f"Textual copy took {checkpoint - start:.6f} seconds")
-            self.app.log.info(f"Pyperclip copy took {checkpoint2 - checkpoint:.6f} seconds")
-            self.app.log.info(f"Notify took {end - checkpoint2:.6f} seconds")
-            self.app.log.info(f"Total of {end - start:.6f} seconds")
+            self.app.log.info("Textual copy took", f"{checkpoint - start:.6f}", "seconds")
+            self.app.log.info("Pyperclip copy took", f"{checkpoint2 - checkpoint:.6f}", "seconds")
+            self.app.log.info("Notify took", f"{end - checkpoint2:.6f}", "seconds")
+            self.app.log.info("Total of", f"{end - start:.6f}", "seconds")
 
     def watch_show_raw(self) -> None:
         """Handle reactive updates to the show_raw attribute by changing the visibility of the child widgets.

@@ -37,6 +37,7 @@
         "testpypi",
         "unsloth",
         "userns",
+        "venv",
         "wezterm",
         "xformers"
     ],

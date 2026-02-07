@@ -1,10 +1,6 @@
 set shell := ["bash", "-c"]
 set positional-arguments
 
-chat_test_image := "jehoctor/chat-test-image"
-chat_test_image_editable := "jehoctor/chat-test-image_editable"
-uv_cache_dir := `uv cache dir 2>/dev/null || echo ~/.cache/uv`
-
 # List available commands
 default:
     @just --list
@@ -57,68 +53,9 @@ chat-pypi *ARGS:
 chat-testpypi *ARGS:
     uvx --torch-backend=auto --index=https://test.pypi.org/simple/ --index-strategy=unsafe-best-match --from=jehoctor-rag-demo@latest chat "$@"
 
-# Build the container image for running from PyPI
-build-podman-image:
-    podman build --format docker \
-        -t {{chat_test_image}} \
-        --build-arg 'VARIANT=pypi' \
-        podman/test-chat/
-
-# Build the container image for running from a copy of the working directory
-build-podman-image-editable:
-    podman build --format docker \
-        -t {{chat_test_image_editable}} \
-        --build-arg 'VARIANT=editable' \
-        --build-context "project=$(pwd)" \
-        podman/test-chat/
-
-# Run the chat command from PyPI in a container
-chat-podman *ARGS:
-    podman run --rm -it --init \
-        --userns=keep-id \
-        -v {{uv_cache_dir}}:/home/ubuntu/.cache/uv:Z \
-        -e UV_LINK_MODE=copy \
-        {{chat_test_image}} \
-        "$@"
-
-# Run the chat command from PyPI in a container, isolated from the host uv cache
-chat-podman-no-cache *ARGS:
-    podman run --rm -it --init \
-        {{chat_test_image}} \
-        "$@"
-
-# Run the chat command from a copy of the working directory in a container
-chat-podman-editable *ARGS: build-podman-image-editable
-    podman run --rm -it --init \
-        --userns=keep-id \
-        -v {{uv_cache_dir}}:/home/ubuntu/.cache/uv:Z \
-        -e UV_LINK_MODE=copy \
-        {{chat_test_image_editable}} \
-        "$@"
-
-# Run a shell in a container from the chat-podman image
-shell-podman:
-    podman run --rm -it --init \
-        --userns=keep-id \
-        -v {{uv_cache_dir}}:/home/ubuntu/.cache/uv:Z \
-        -e UV_LINK_MODE=copy \
-        --entrypoint=/bin/bash \
-        {{chat_test_image}}
-
-# Run a shell in a container from the chat-podman image, isolated from the host uv cache
-shell-podman-no-cache:
-    podman run --rm -it --init \
-        --entrypoint=/bin/bash \
-        {{chat_test_image}}
-
-# Run a shell in a container from the chat-podman-editable image
-shell-podman-editable: build-podman-image-editable
-    podman run --rm -it --init \
-        --userns=keep-id \
-        -v {{uv_cache_dir}}:/home/ubuntu/.cache/uv:Z \
-        -e UV_LINK_MODE=copy \
-        --entrypoint=/bin/bash \
-        {{chat_test_image_editable}}
+# Run the podman-based isolated testing system (see automation/test-podman.py)
+podman *ARGS:
+    uv run automation/test-podman.py "$@"
 
 # Test
 test:

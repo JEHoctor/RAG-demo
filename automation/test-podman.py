@@ -16,6 +16,9 @@ chat_test_image_editable = "jehoctor/chat-test-image-editable"
 
 app = typer.Typer()
 
+console = Console()
+err_console = Console(stderr=True, style="bold red")
+
 
 def uv_cache_dir() -> Path:
     """Get the location of the host's uv cache."""
@@ -55,7 +58,6 @@ def build(
     args.append("podman/test-chat/")
 
     if dry_run:
-        console = Console()
         syntax = Syntax(
             code=" ".join(shlex.quote(arg) for arg in args),
             lexer="bash",
@@ -85,22 +87,30 @@ def run(  # noqa: PLR0913
         bool,
         typer.Option(help="Build the image before running. (This is always done when running in editable mode.)"),
     ] = False,
+    host_ollama: Annotated[bool, typer.Option(help="Connect to Ollama running on the host")] = False,
 ) -> None:
     """Run podman with options needed for testing the rag demo in (semi-)isolated containers."""
-    if editable or build_always:
-        build(editable=editable, dry_run=dry_run)
-
     args: list[str] = ["podman", "run", "--rm", "-it", "--init"]
+    if host_ollama:
+        args.append("--network=pasta:-T,8081,-T,11434")
+        args.extend(["-e", "TEXTUAL_CONSOLE_HOST=127.0.0.1"])
+    else:
+        args.extend(["-e", "TEXTUAL_CONSOLE_HOST=host.containers.internal"])
     if use_cache:
         args.extend(["--userns=keep-id", "-v", f"{uv_cache_dir()}:/home/ubuntu/.cache/uv:Z", "-e", "UV_LINK_MODE=copy"])
     if shell:
         args.append("--entrypoint=/bin/bash")
     args.append(chat_test_image_editable if editable else chat_test_image)
     if additional_arguments:
-        args.extend(additional_arguments)
+        if shell:
+            err_console.print(__file__, "Warning: additional arguments are ignored when running in shell mode.")
+        else:
+            args.extend(additional_arguments)
+
+    if editable or build_always:
+        build(editable=editable, dry_run=dry_run)
 
     if dry_run:
-        console = Console()
         syntax = Syntax(
             code=" ".join(shlex.quote(arg) for arg in args),
             lexer="bash",

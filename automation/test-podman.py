@@ -34,6 +34,20 @@ def uv_cache_dir() -> Path:
     return Path(result.stdout.strip())
 
 
+def print_for_dry_run(*, args: list[str]) -> None:
+    """Pretty print a command with bash syntax highlighting.
+
+    Args:
+        args (list[str]): The command as a list of arguments.
+    """
+    syntax = Syntax(
+        code=" ".join(shlex.quote(arg) for arg in args),
+        lexer="bash",
+        theme="monokai",
+    )
+    console.print(syntax)
+
+
 @app.command()
 def build(
     *,
@@ -58,12 +72,7 @@ def build(
     args.append("podman/test-chat/")
 
     if dry_run:
-        syntax = Syntax(
-            code=" ".join(shlex.quote(arg) for arg in args),
-            lexer="bash",
-            theme="monokai",
-        )
-        console.print(syntax)
+        print_for_dry_run(args=args)
         return
 
     result = subprocess.run(args=args, check=False)
@@ -111,12 +120,7 @@ def run(  # noqa: PLR0913
         build(editable=editable, dry_run=dry_run)
 
     if dry_run:
-        syntax = Syntax(
-            code=" ".join(shlex.quote(arg) for arg in args),
-            lexer="bash",
-            theme="monokai",
-        )
-        console.print(syntax)
+        print_for_dry_run(args=args)
         return
 
     result = subprocess.run(args=args, check=False)

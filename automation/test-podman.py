@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shlex
 import subprocess
 from pathlib import Path
@@ -100,23 +101,37 @@ def run(  # noqa: PLR0913
     host_ollama: Annotated[bool, typer.Option(help="Connect to Ollama running on the host")] = False,
 ) -> None:
     """Run podman with options needed for testing the rag demo in (semi-)isolated containers."""
+    # base command
     args: list[str] = ["podman", "run", "--rm", "-it", "--init"]
+    # Forward terminal info so the container can look up the terminal capabilities.
+    term: str | None = os.environ.get("TERM")
+    if term is not None:
+        args.extend(["-e", f"TERM={term}"])
+    terminfo: str = os.environ.get("TERMINFO", "/usr/share/terminfo")
+    args.extend(["-v", f"{terminfo}:/usr/share/terminfo:ro"])
+    args.extend(["-e", "TERMINFO=/usr/share/terminfo"])
+    # Handle `--host-ollama`.
     if host_ollama:
         args.append("--network=pasta:-T,8081,-T,11434")
         args.extend(["-e", "TEXTUAL_CONSOLE_HOST=127.0.0.1"])
     else:
         args.extend(["-e", "TEXTUAL_CONSOLE_HOST=host.containers.internal"])
+    # Handle `--use-cache`.
     if use_cache:
         args.extend(["--userns=keep-id", "-v", f"{uv_cache_dir()}:/home/ubuntu/.cache/uv:z", "-e", "UV_LINK_MODE=copy"])
+    # Handle `--shell`.
     if shell:
         args.append("--entrypoint=/bin/bash")
+    # Handle `--editable`.
     args.append(chat_test_image_editable if editable else chat_test_image)
+    # Handle extra positional arguments.
     if additional_arguments:
         if shell:
             err_console.print(__file__, "Warning: additional arguments are ignored when running in shell mode.")
         else:
             args.extend(additional_arguments)
 
+    # Handle `--build-always` (respecting `--editable` as well).
     if editable or build_always:
         build(editable=editable, dry_run=dry_run)
 

@@ -44,6 +44,7 @@ def print_for_dry_run(*, args: list[str]) -> None:
         code=" ".join(shlex.quote(arg) for arg in args),
         lexer="bash",
         theme="monokai",
+        word_wrap=True,
     )
     console.print(syntax)
 

@@ -171,24 +171,25 @@ class Logic:
         self.app_sqlite_db = app_sqlite_db
         self.agent_providers: Sequence[AgentProvider] = agent_providers
 
+        self.ordered_agent_providers: Sequence[AgentProvider] = self.agent_providers
+        if self.preferred_provider_type is not None:
+            preferred_providers: Sequence[AgentProvider] = tuple(
+                ap for ap in self.ordered_agent_providers if ap.type == self.preferred_provider_type
+            )
+            if len(preferred_providers) == 0:
+                raise UnknownPreferredProviderError(self.preferred_provider_type)
+            self.ordered_agent_providers = (
+                *preferred_providers,
+                *(ap for ap in self.ordered_agent_providers if ap.type != self.preferred_provider_type),
+            )
+
     @asynccontextmanager
     async def runtime(self, app: AppProtocol) -> AsyncIterator[Runtime]:
         """Returns a runtime context for the application."""
         thread_id_manager = AtomicIDManager(self.app_sqlite_db)
         await thread_id_manager.initialize()
 
-        agent_providers: Sequence[AgentProvider] = self.agent_providers
-        if self.preferred_provider_type is not None:
-            preferred_providers: Sequence[AgentProvider] = tuple(
-                ap for ap in agent_providers if ap.type == self.preferred_provider_type
-            )
-            if len(preferred_providers) == 0:
-                raise UnknownPreferredProviderError(self.preferred_provider_type)
-            agent_providers = (
-                *preferred_providers,
-                *(ap for ap in agent_providers if ap.type != self.preferred_provider_type),
-            )
-        for agent_provider in agent_providers:
+        for agent_provider in self.ordered_agent_providers:
             async with agent_provider.get_agent(checkpoints_sqlite_db=self.checkpoints_sqlite_db) as agent:
                 if agent is not None:
                     yield Runtime(

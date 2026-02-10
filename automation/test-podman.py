@@ -106,7 +106,7 @@ def run(  # noqa: PLR0913
     else:
         args.extend(["-e", "TEXTUAL_CONSOLE_HOST=host.containers.internal"])
     if use_cache:
-        args.extend(["--userns=keep-id", "-v", f"{uv_cache_dir()}:/home/ubuntu/.cache/uv:Z", "-e", "UV_LINK_MODE=copy"])
+        args.extend(["--userns=keep-id", "-v", f"{uv_cache_dir()}:/home/ubuntu/.cache/uv:z", "-e", "UV_LINK_MODE=copy"])
     if shell:
         args.append("--entrypoint=/bin/bash")
     args.append(chat_test_image_editable if editable else chat_test_image)

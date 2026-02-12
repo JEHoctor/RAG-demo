@@ -75,7 +75,7 @@ def build(
     else:
         arg_groups.append(["-t", chat_test_image])
         arg_groups.append(["--build-arg", "VARIANT=pypi"])
-    arg_groups.append(["podman/test-chat/"])
+    arg_groups.append([str(Path.cwd() / "podman" / "test-chat")])
 
     if dry_run:
         print_for_dry_run(arg_groups=arg_groups)

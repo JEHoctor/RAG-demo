@@ -6,11 +6,13 @@ import os
 import shlex
 import subprocess
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.console import Console
-from rich.syntax import Syntax
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 chat_test_image = "jehoctor/chat-test-image"
 chat_test_image_editable = "jehoctor/chat-test-image-editable"
@@ -35,19 +37,27 @@ def uv_cache_dir() -> Path:
     return Path(result.stdout.strip())
 
 
-def print_for_dry_run(*, args: list[str]) -> None:
-    """Pretty print a command with bash syntax highlighting.
+def flatten_arg_groups(arg_groups: Sequence[Sequence[str]]) -> list[str]:
+    """Flatten a list of argument groups into a list of arguments."""
+    return [arg for arg_group in arg_groups for arg in arg_group]
+
+
+def print_for_dry_run(*, arg_groups: Sequence[Sequence[str]]) -> None:
+    """Pretty print a command on multiple lines with bash syntax highlighting.
 
     Args:
-        args (list[str]): The command as a list of arguments.
+        command_title (str): The title of the command to be displayed above
+        arg_groups (Sequence[Sequence[str]]): The groups of arguments to display on each line
     """
-    syntax = Syntax(
-        code=" ".join(shlex.quote(arg) for arg in args),
-        lexer="bash",
-        theme="monokai",
-        word_wrap=True,
-    )
-    console.print(syntax)
+    code = ""
+    first_line = True
+    for arg_group in arg_groups:
+        if first_line:
+            first_line = False
+        else:
+            code += " \\\n\t"
+        code += " ".join(shlex.quote(arg) for arg in arg_group)
+    console.print(code)
 
 
 @app.command()
@@ -57,26 +67,21 @@ def build(
     dry_run: Annotated[bool, typer.Option(help="Print the command instead of running it")] = False,
 ) -> None:
     """Build the podman image for testing."""
-    args: list[str] = ["podman", "build", "--format=docker"]
+    arg_groups: list[list[str]] = [["podman", "build", "--format=docker"]]
     if editable:
-        args.extend(
-            [
-                "-t",
-                chat_test_image_editable,
-                "--build-arg",
-                "VARIANT=editable",
-                "--build-context",
-                f"project={Path.cwd()}",
-            ],
-        )
+        arg_groups.append(["-t", chat_test_image_editable])
+        arg_groups.append(["--build-arg", "VARIANT=editable"])
+        arg_groups.append(["--build-context", f"project={Path.cwd()}"])
     else:
-        args.extend(["-t", chat_test_image, "--build-arg", "VARIANT=pypi"])
-    args.append("podman/test-chat/")
+        arg_groups.append(["-t", chat_test_image])
+        arg_groups.append(["--build-arg", "VARIANT=pypi"])
+    arg_groups.append(["podman/test-chat/"])
 
     if dry_run:
-        print_for_dry_run(args=args)
+        print_for_dry_run(arg_groups=arg_groups)
         return
 
+    args = flatten_arg_groups(arg_groups)
     result = subprocess.run(args=args, check=False)
 
     if result.returncode != 0:
@@ -102,43 +107,46 @@ def run(  # noqa: PLR0913
 ) -> None:
     """Run podman with options needed for testing the rag demo in (semi-)isolated containers."""
     # base command
-    args: list[str] = ["podman", "run", "--rm", "-it", "--init"]
+    arg_groups: list[list[str]] = [["podman", "run", "--rm", "-it", "--init"]]
     # Forward terminal info so the container can look up the terminal capabilities.
     term: str | None = os.environ.get("TERM")
     if term is not None:
-        args.extend(["-e", f"TERM={term}"])
+        arg_groups.append(["-e", f"TERM={term}"])
     terminfo: str = os.environ.get("TERMINFO", "/usr/share/terminfo")
-    args.extend(["-v", f"{terminfo}:/usr/share/terminfo:ro"])
-    args.extend(["-e", "TERMINFO=/usr/share/terminfo"])
+    arg_groups.append(["-v", f"{terminfo}:/usr/share/terminfo:ro"])
+    arg_groups.append(["-e", "TERMINFO=/usr/share/terminfo"])
     # Handle `--host-ollama`.
     if host_ollama:
-        args.append("--network=pasta:-T,8081,-T,11434")
-        args.extend(["-e", "TEXTUAL_CONSOLE_HOST=127.0.0.1"])
+        arg_groups.append(["--network=pasta:-T,8081,-T,11434"])
+        arg_groups.append(["-e", "TEXTUAL_CONSOLE_HOST=127.0.0.1"])
     else:
-        args.extend(["-e", "TEXTUAL_CONSOLE_HOST=host.containers.internal"])
+        arg_groups.append(["-e", "TEXTUAL_CONSOLE_HOST=host.containers.internal"])
     # Handle `--use-cache`.
     if use_cache:
-        args.extend(["--userns=keep-id", "-v", f"{uv_cache_dir()}:/home/ubuntu/.cache/uv:z", "-e", "UV_LINK_MODE=copy"])
+        arg_groups.append(["--userns=keep-id"])
+        arg_groups.append(["-v", f"{uv_cache_dir()}:/home/ubuntu/.cache/uv:z"])
+        arg_groups.append(["-e", "UV_LINK_MODE=copy"])
     # Handle `--shell`.
     if shell:
-        args.append("--entrypoint=/bin/bash")
+        arg_groups.append(["--entrypoint=/bin/bash"])
     # Handle `--editable`.
-    args.append(chat_test_image_editable if editable else chat_test_image)
+    arg_groups.append([chat_test_image_editable if editable else chat_test_image])
     # Handle extra positional arguments.
     if additional_arguments:
         if shell:
             err_console.print(__file__, "Warning: additional arguments are ignored when running in shell mode.")
         else:
-            args.extend(additional_arguments)
+            arg_groups.append(additional_arguments)
 
     # Handle `--build-always` (respecting `--editable` as well).
     if editable or build_always:
         build(editable=editable, dry_run=dry_run)
 
     if dry_run:
-        print_for_dry_run(args=args)
+        print_for_dry_run(arg_groups=arg_groups)
         return
 
+    args = flatten_arg_groups(arg_groups)
     result = subprocess.run(args=args, check=False)
 
     if result.returncode != 0:

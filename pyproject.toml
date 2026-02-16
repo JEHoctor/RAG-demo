@@ -1,6 +1,6 @@
 [project]
 name = "jehoctor-rag-demo"
-version = "0.2.1"
+version = "0.2.2"
 description = "Chat with Wikipedia"
 readme = "README.md"
 authors = [

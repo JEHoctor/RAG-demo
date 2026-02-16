@@ -31,11 +31,11 @@ chat-dev *ARGS:
 
 # Run the chat command in a web browser
 serve *ARGS:
-    uv run textual serve chat "$@"
+    uv run textual serve chat -- "$@"
 
 # Run the chat command in a web browser in dev mode
 serve-dev *ARGS:
-    uv run textual serve --dev chat "$@"
+    uv run textual serve --dev chat -- "$@"
 
 # Open a Textual dev console
 console:

@@ -8,12 +8,11 @@ from typing import TYPE_CHECKING
 import pyperclip
 from textual.containers import HorizontalGroup, VerticalGroup, VerticalScroll
 from textual.reactive import reactive
-from textual.widgets import Button, Footer, Header, Input, Label, Markdown, Pretty, Static
+from textual.widgets import Button, Footer, Header, Input, Label, Pretty, Static
 from textual.widgets.markdown import MarkdownStream
 
-from rag_demo.markdown import parser_factory
 from rag_demo.modes._logic_provider import LogicProviderScreen, LogicProviderWidget
-from rag_demo.widgets import EscapableInput
+from rag_demo.widgets import EscapableInput, Markdown
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -127,7 +126,7 @@ class Response(LogicProviderWidget):
                     yield Button("Stop", id="stop", variant="primary")
                     yield Button("Show Raw", id="show-raw", variant="primary")
                     yield Button("Copy", id="copy", variant="primary")
-            yield Markdown(self.content, id="markdown-view", parser_factory=parser_factory)
+            yield Markdown(self.content, id="markdown-view")
             yield Label(self.content, id="raw-view", markup=False)
             yield Pretty(None, id="object-view")
 

@@ -58,7 +58,7 @@ Also, run with the extra group `llamacpp`.
 Try this:
 
 ```bash
-uvx --python-platform=aarch64-apple-darwin --torch-backend=auto --from=jehoctor-rag-demo[llamacpp]@latest chat
+uvx --python-platform=aarch64-apple-darwin --torch-backend=auto --from='jehoctor-rag-demo[llamacpp]@latest' chat
 ```
 
 ## Ollama on Linux

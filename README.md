@@ -70,8 +70,8 @@ See this FAQ: https://docs.ollama.com/faq#how-can-i-upgrade-ollama.
 ## Project feature roadmap
 
 - ❌ RAG functionality
-- ❌ torch inference via the Langchain local Hugging Face inference integration
-- ❌ uv automatic torch backend selection (see [the docs](https://docs.astral.sh/uv/guides/integration/pytorch/#automatic-backend-selection))
+- ✅ torch inference via the Langchain local Hugging Face inference integration
+- ✅ uv automatic torch backend selection (see [the docs](https://docs.astral.sh/uv/guides/integration/pytorch/#automatic-backend-selection))
 - ❌ OpenAI integration
 - ❌ Anthropic integration
 

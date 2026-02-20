@@ -125,7 +125,7 @@ def run(  # noqa: PLR0913
     if use_cache:
         arg_groups.append(["--userns=keep-id"])
         arg_groups.append(["-v", f"{uv_cache_dir()}:/home/ubuntu/.cache/uv:z"])
-        arg_groups.append(["-e", "UV_LINK_MODE=copy"])
+        arg_groups.append(["-e", "UV_LINK_MODE=symlink"])
     # Handle `--shell`.
     if shell:
         arg_groups.append(["--entrypoint=/bin/bash"])

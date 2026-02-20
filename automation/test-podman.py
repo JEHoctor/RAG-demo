@@ -57,7 +57,7 @@ def print_for_dry_run(*, arg_groups: Sequence[Sequence[str]]) -> None:
         else:
             code += " \\\n\t"
         code += " ".join(shlex.quote(arg) for arg in arg_group)
-    console.print(code)
+    console.print(code, soft_wrap=True)
 
 
 @app.command()

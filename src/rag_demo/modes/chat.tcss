@@ -2,36 +2,39 @@ ToastRack {
     margin-bottom: 5;
 }
 
-#chats {
-    width: 100%;
+.chats-scroll {
     hatch: left $primary-darken-2 100%;
 }
 
-#top-chat-separator {
+.chats {
     hatch: left $primary-darken-2 100%;
-    height: 1;
+    padding: 0 2 0 2;
+}
+
+.below-chats {
+    visibility: hidden;
+}
+
+.request-container {
+    align-horizontal: right;
+    hatch: left $primary-darken-2 100%;
+    margin-top: 1;
 }
 
 .request {
     min-width: 30%;
     max-width: 90%;
     padding: 1 2 1 2;
-    margin: 0 2 1 0;
     background: $boost;
-}
-
-.request-container {
-    align-horizontal: right;
-    hatch: left $primary-darken-2 100%;
 }
 
 .response-container {
     align-horizontal: left;
     hatch: left $primary-darken-2 100%;
+    margin-top: 1;
 }
 
 .response {
-    margin: 0 0 1 2;
     width: 90%;
     height: auto;
 }
@@ -59,7 +62,7 @@ ToastRack {
     padding: 0 2 1 2;
 }
 
-#new-request-bar > Static {
+.new-request-bar > Static {
     width: 5%;
     height: 3;
     hatch: cross $surface 100%;

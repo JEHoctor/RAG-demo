@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pyperclip
-from textual.containers import HorizontalGroup, VerticalGroup, VerticalScroll
+from textual.containers import HorizontalGroup, Vertical, VerticalGroup, VerticalScroll
 from textual.reactive import reactive
 from textual.widgets import Button, Footer, Header, Input, Label, Pretty, Static
 from textual.widgets.markdown import MarkdownStream
@@ -250,20 +250,25 @@ class ChatScreen(LogicProviderScreen):
     def compose(self) -> ComposeResult:
         """Compose the initial content of the chat screen."""
         yield Header()
-        chats = VerticalScroll(id="chats")
-        with chats:
-            yield HorizontalGroup(id="top-chat-separator")
-        with HorizontalGroup(id="new-request-bar"):
+        with VerticalScroll(classes="chats-scroll"):
+            chats = VerticalGroup(classes="chats")
+            yield chats
+            yield Vertical(classes="below-chats")
+        with HorizontalGroup(classes="new-request-bar"):
             yield Static()
             yield Button("New Conversation", id="new-conversation")
-            yield EscapableInput(placeholder="     What do you want to know?", id="new-request", focus_on_escape=chats)
+            yield EscapableInput(
+                placeholder="     What do you want to know?",
+                id="new-request",
+                focus_on_escape=chats,
+            )
             yield Static()
         yield Footer()
 
     def on_mount(self) -> None:
         """When the screen is mounted, focus the input field and enable bottom anchoring for the message view."""
-        self.query_one("#new-request", Input).focus()
-        self.query_one("#chats", VerticalScroll).anchor()
+        self.query_one("#new-request", EscapableInput).focus()
+        self.query_one(".chats-scroll", VerticalScroll).anchor()
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events."""
@@ -275,14 +280,11 @@ class ChatScreen(LogicProviderScreen):
         if event.input.id == "new-request":
             accepted = await (await self.runtime()).submit_request(self, event.value)
             if accepted:
-                self.query_one("#new-request", Input).value = ""
+                event.input.value = ""
 
     def clear_chats(self) -> None:
         """Clear the chat scroll area."""
-        chats = self.query_one("#chats", VerticalScroll)
-        for child in chats.children:
-            if child.id != "top-chat-separator":
-                child.remove()
+        self.query_one(".chats", VerticalGroup).remove_children()
 
     def new_request(self, request_text: str) -> Label:
         """Create a new request element in the chat area.
@@ -293,10 +295,11 @@ class ChatScreen(LogicProviderScreen):
         Returns:
             Label: The request element.
         """
-        chats = self.query_one("#chats", VerticalScroll)
+        chats = self.query_one(".chats", VerticalGroup)
+        chats_scroll = self.query_one(".chats-scroll", VerticalScroll)
         request = Label(request_text, classes="request")
         chats.mount(HorizontalGroup(request, classes="request-container"))
-        chats.anchor()
+        chats_scroll.anchor()
         return request
 
     def new_response(self, response_text: str = "Waiting for AI to respond...") -> Response:
@@ -309,8 +312,9 @@ class ChatScreen(LogicProviderScreen):
         Returns:
             Response: The response widget/element.
         """
-        chats = self.query_one("#chats", VerticalScroll)
+        chats = self.query_one(".chats", VerticalGroup)
+        chats_scroll = self.query_one(".chats-scroll", VerticalScroll)
         response = Response(content=response_text, classes="response")
         chats.mount(HorizontalGroup(response, classes="response-container"))
-        chats.anchor()
+        chats_scroll.anchor()
         return response

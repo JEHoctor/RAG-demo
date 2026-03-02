@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from io import UnsupportedOperation
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
-from textual.app import App
+from textual.app import App, _PrintCapture
 from textual.binding import Binding
 
 from rag_demo.modes import ChatScreen, ConfigScreen, HelpScreen
@@ -18,6 +19,22 @@ class AppNotMountedError(RuntimeError):
 
     def __init__(self) -> None:  # noqa: D107
         super().__init__("This operation cannot succeed because on_mount() has not been called.")
+
+
+class PrintCaptureHasNoFileDescriptor(UnsupportedOperation):
+    """Raised unconditionally when _SafePrintCapture.fileno() is called."""
+
+    def __init__(self) -> None:  # noqa: D107
+        super().__init__(
+            "Textual is redirecting STDOUT and STDERR with a file object that does not have a file descriptor.",
+        )
+
+
+class _SafePrintCapture(_PrintCapture):
+    """Patched capture that correctly signals it has no real file descriptor."""
+
+    def fileno(self) -> int:
+        raise PrintCaptureHasNoFileDescriptor
 
 
 class RAGDemo(App):
@@ -46,6 +63,8 @@ class RAGDemo(App):
             logic (Logic): Object implementing the application logic.
         """
         super().__init__()
+        self._capture_stdout = _SafePrintCapture(self, stderr=False)
+        self._capture_stderr = _SafePrintCapture(self, stderr=True)
         self.logic = logic
         self._runtime_future: asyncio.Future[Runtime] | None = None
 

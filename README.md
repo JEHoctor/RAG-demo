@@ -35,12 +35,12 @@ Windows Terminal should be fine as far as I know.
 
 Run in a terminal:
 ```bash
-uvx --torch-backend=auto --from=jehoctor-rag-demo@latest chat
+uvx --python=3.12 --torch-backend=auto --from=jehoctor-rag-demo@latest chat
 ```
 
 Or run in a web browser:
 ```bash
-uvx --torch-backend=auto --from=jehoctor-rag-demo@latest textual serve chat
+uvx --python=3.12 --torch-backend=auto --from=jehoctor-rag-demo@latest textual serve chat
 ```
 
 ## CUDA acceleration via Llama.cpp

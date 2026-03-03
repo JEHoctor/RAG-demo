@@ -168,12 +168,13 @@ class Response(LogicProviderWidget):
         if self._stream is not None:
             raise ResponseStreamInProgressError
         self._stream = ResponseWriter(self)
-        self.query_one("#stop", Button).display = True
+        stop_button = self.query_one("#stop", Button)
+        stop_button.display = True
         try:
             yield self._stream
         finally:
             await self._stream.stop()
-            self.query_one("#stop", Button).display = False
+            stop_button.display = False
             self._stream = None
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:

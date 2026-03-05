@@ -12,7 +12,7 @@ from textual.reactive import reactive
 from textual.widgets import Button, Footer, Header, Input, Label, Pretty, Static
 from textual.widgets.markdown import MarkdownStream
 
-from rag_demo.modes._app_types import LogicProviderScreen, LogicProviderWidget
+from rag_demo.modes._app_types import RAGDemoScreen, RAGDemoWidget
 from rag_demo.widgets import EscapableInput, Markdown
 
 if TYPE_CHECKING:
@@ -105,7 +105,7 @@ class ResponseWriter:
         self._n_chunks += 1
 
 
-class Response(LogicProviderWidget):
+class Response(RAGDemoWidget):
     """Allow toggling between raw and rendered versions of markdown text."""
 
     show_raw = reactive(False, layout=True)
@@ -249,7 +249,7 @@ class Response(LogicProviderWidget):
         self.query_one("#token-rate", Label).update(label_text)
 
 
-class ChatScreen(LogicProviderScreen):
+class ChatScreen(RAGDemoScreen):
     """Main mode of the app. Talk to the AI agent."""
 
     SUB_TITLE = "Chat"
@@ -281,12 +281,12 @@ class ChatScreen(LogicProviderScreen):
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events."""
         if event.button.id == "new-conversation":
-            (await self.runtime()).new_conversation(self)
+            (await self.app.runtime()).new_conversation(self)
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle submission of new requests."""
         if event.input.id == "new-request":
-            accepted = await (await self.runtime()).submit_request(self, event.value)
+            accepted = await (await self.app.runtime()).submit_request(self, event.value)
             if accepted:
                 event.input.value = ""
 

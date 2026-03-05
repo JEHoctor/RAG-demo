@@ -4,10 +4,10 @@ from textual.app import ComposeResult
 from textual.containers import HorizontalGroup, VerticalScroll
 from textual.widgets import Footer, Header, Label
 
-from rag_demo.modes._app_types import LogicProviderScreen, LogicProviderWidget
+from rag_demo.modes._app_types import RAGDemoScreen, RAGDemoWidget
 
 
-class RetrievalDatabaseScreen(LogicProviderScreen):
+class RetrievalDatabaseScreen(RAGDemoScreen):
     """Manage a single document retrieval database."""
 
     def compose(self) -> ComposeResult:
@@ -20,7 +20,7 @@ class RetrievalDatabaseScreen(LogicProviderScreen):
         yield Footer()
 
 
-class RetrievalDatabaseSummary(LogicProviderWidget):
+class RetrievalDatabaseSummary(RAGDemoWidget):
     """Summary of a single document retrieval database."""
 
     def compose(self) -> ComposeResult:
@@ -33,7 +33,7 @@ class RetrievalDatabaseSummary(LogicProviderWidget):
             yield Label("Retrieval Database Summary")
 
 
-class RetrievalScreen(LogicProviderScreen):
+class RetrievalScreen(RAGDemoScreen):
     """Manage document retrieval databases."""
 
     SUB_TITLE = "Retrieval"

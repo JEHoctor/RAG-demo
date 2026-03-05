@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class RAGDemoScreen(Screen):
-    """A Screen that provides access to the application logic via its parent app."""
+    """A Screen whose parent app is a RAGDemo."""
 
     @property
     def app(self) -> RAGDemo:
@@ -18,7 +18,7 @@ class RAGDemoScreen(Screen):
 
 
 class RAGDemoWidget(Widget):
-    """A Widget that provides access to the application logic via its parent app."""
+    """A Widget whose parent app is a RAGDemo."""
 
     @property
     def app(self) -> RAGDemo:

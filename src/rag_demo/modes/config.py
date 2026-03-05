@@ -13,7 +13,7 @@ from textual.widgets import (
     Static,
 )
 
-from rag_demo.modes._logic_provider import LogicProviderScreen
+from rag_demo.modes._app_types import LogicProviderScreen
 
 
 class ConfigScreen(LogicProviderScreen):

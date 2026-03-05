@@ -4,7 +4,7 @@ from textual.app import ComposeResult
 from textual.containers import HorizontalGroup, VerticalScroll
 from textual.widgets import Footer, Header, Label
 
-from rag_demo.modes._logic_provider import LogicProviderScreen, LogicProviderWidget
+from rag_demo.modes._app_types import LogicProviderScreen, LogicProviderWidget
 
 
 class RetrievalDatabaseScreen(LogicProviderScreen):

@@ -12,7 +12,7 @@ from textual.reactive import reactive
 from textual.widgets import Button, Footer, Header, Input, Label, Pretty, Static
 from textual.widgets.markdown import MarkdownStream
 
-from rag_demo.modes._logic_provider import LogicProviderScreen, LogicProviderWidget
+from rag_demo.modes._app_types import LogicProviderScreen, LogicProviderWidget
 from rag_demo.widgets import EscapableInput, Markdown
 
 if TYPE_CHECKING:

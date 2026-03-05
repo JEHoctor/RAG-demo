@@ -3,7 +3,7 @@ from pathlib import Path
 from textual.app import ComposeResult
 from textual.widgets import Footer, Header, Label
 
-from rag_demo.modes._logic_provider import LogicProviderScreen
+from rag_demo.modes._app_types import LogicProviderScreen
 
 
 class HelpScreen(LogicProviderScreen):

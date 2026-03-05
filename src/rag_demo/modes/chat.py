@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pyperclip
 from textual.containers import HorizontalGroup, Vertical, VerticalGroup, VerticalScroll
+from textual.css.query import NoMatches
 from textual.reactive import reactive
 from textual.widgets import Button, Footer, Header, Input, Label, Pretty, Static
 from textual.widgets.markdown import MarkdownStream
@@ -92,7 +93,13 @@ class ResponseWriter:
             # we are calculating the generation rate excluding the first chunk, which may have required loading a
             # large model.
             rate = self._n_chunks / (write_time - self._start_time)
-            self.response_widget.update_rate_label(rate)
+
+            # This is a hack. If the response widget has been unmounted then NoMatches will be raised here.
+            try:
+                self.response_widget.update_rate_label(rate)
+            except NoMatches as e:
+                await self.stop()
+                raise StoppedStreamError from e
 
             await self._markdown_stream.write(markdown_fragment)
         self._n_chunks += 1

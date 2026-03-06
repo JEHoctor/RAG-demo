@@ -281,12 +281,12 @@ class ChatScreen(RAGDemoScreen):
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events."""
         if event.button.id == "new-conversation":
-            (await self.app.runtime()).new_conversation(self)
+            self.app.runtime.new_conversation(self)
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle submission of new requests."""
         if event.input.id == "new-request":
-            accepted = await (await self.app.runtime()).submit_request(self, event.value)
+            accepted = await self.app.runtime.submit_request(self, event.value)
             if accepted:
                 event.input.value = ""
 

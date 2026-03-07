@@ -19,10 +19,15 @@ def _main(
     """Talk to Wikipedia."""
     # Import here so that imports run within the typer.run context for prettier stack traces if errors occur.
     # We ignore PLC0415 because we do not want these imports to be at the top of the module as is usually preferred.
+    import logging  # noqa: PLC0415
+
     import transformers  # noqa: PLC0415
+    from textual.logging import TextualHandler  # noqa: PLC0415
 
     from rag_demo.app import RAGDemo  # noqa: PLC0415
     from rag_demo.logic import Logic  # noqa: PLC0415
+
+    logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
 
     # The transformers library likes to print text that interferes with the TUI. Disable it.
     transformers.logging.set_verbosity(verbosity=transformers.logging.CRITICAL)

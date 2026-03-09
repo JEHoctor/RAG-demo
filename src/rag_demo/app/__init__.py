@@ -22,6 +22,13 @@ class AppNotMountedError(RuntimeError):
         super().__init__("This operation cannot succeed because the app is not mounted.")
 
 
+class MisbehavingRuntimeLifecycleManagerError(RuntimeError):
+    """Raised when cleaning up the runtime lifecycle manager fails."""
+
+    def __init__(self) -> None:  # noqa: D107
+        super().__init__("The runtime lifecycle manager yielded when StopAsyncIteration was expected.")
+
+
 class PrintCaptureHasNoFileDescriptor(UnsupportedOperation):
     """Raised unconditionally when _SafePrintCapture.fileno() is called."""
 
@@ -75,21 +82,24 @@ class RAGDemo(App):
     async def on_mount(self) -> None:
         """Set the initial mode to chat and initialize async parts of the logic."""
         self.switch_mode("chat")
-        self._runtime_lifecycle_manager = self._new_runtime_lifecycle_manager()
-        self._runtime = await anext(self._runtime_lifecycle_manager)
+        manager = self._new_runtime_lifecycle_manager()
+        runtime = await anext(manager)
+        self._runtime_lifecycle_manager = manager
+        self._runtime = runtime
 
     async def on_unmount(self) -> None:
         """Clean up the application runtime."""
         if self._runtime_lifecycle_manager is None:
             raise AppNotMountedError
+        manager = self._runtime_lifecycle_manager
+        self._runtime = None
+        self._runtime_lifecycle_manager = None
         try:
-            await anext(self._runtime_lifecycle_manager)
+            await anext(manager)
         except StopAsyncIteration:
             pass
         else:
-            raise RuntimeError
-        self._runtime = None
-        self._runtime_lifecycle_manager = None
+            raise MisbehavingRuntimeLifecycleManagerError
 
     async def _new_runtime_lifecycle_manager(self) -> AsyncIterator[Runtime]:
         async with self.logic.runtime(app=self) as runtime:

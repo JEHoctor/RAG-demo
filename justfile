@@ -37,13 +37,25 @@ serve *ARGS:
 serve-dev *ARGS:
     uv run textual serve --dev chat -- "$@"
 
-# Open a Textual dev console
+# Open a Textual dev console including INFO and LOGGING messages (most useful default)
 console:
-    uv run textual console -x EVENT
+    uv run textual console -x EVENT -x DEBUG -x WARNING -x ERROR -x PRINT -x SYSTEM -x WORKER
 
-# Open a Textual dev console excluding all messages but INFO
+# Open a Textual dev console including INFO messages
 console-info:
     uv run textual console -x EVENT -x DEBUG -x WARNING -x ERROR -x PRINT -x SYSTEM -x LOGGING -x WORKER
+
+# Open a Textual dev console including LOGGING messages
+console-logging:
+    uv run textual console -x EVENT -x DEBUG -x WARNING -x ERROR -x PRINT -x SYSTEM -x INFO -x WORKER
+
+# Open a Textual dev console including all messages except EVENT
+console-no-event:
+    uv run textual console -x EVENT
+
+# Open a Textual dev console including all messages, even EVENT
+console-all:
+    uv run textual console
 
 # Run the chat command from PyPI
 chat-pypi *ARGS:

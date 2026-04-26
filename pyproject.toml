@@ -107,6 +107,9 @@ ignore = [
     "C419",      # It's OK to use extra list comprehensions in tests to make the output more informative.
     "PLR2004",   # There are going to be some magic values in the tests. It's OK.
 ]
+"automation/*" = [
+    "INP001",    # No need to create __init__.py files in the automation/ directory.
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

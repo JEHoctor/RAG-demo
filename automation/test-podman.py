@@ -1,4 +1,4 @@
-"""This script coordinates the system for testing the app in a podman container."""  # noqa: INP001
+"""This script coordinates the system for testing the app in a podman container."""
 
 from __future__ import annotations
 

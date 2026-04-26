@@ -17,10 +17,13 @@ from rag_demo.modes._logic_provider import LogicProviderScreen
 
 
 class ConfigScreen(LogicProviderScreen):
+    """Screen for configuring the application."""
+
     SUB_TITLE = "Configure"
     CSS_PATH = Path(__file__).parent / "config.tcss"
 
     def compose(self) -> ComposeResult:
+        """Compose the initial content of the config screen."""
         yield Header()
         yield Container(
             Static("🤖 LLM Configuration", classes="title"),
@@ -48,6 +51,7 @@ class ConfigScreen(LogicProviderScreen):
         yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press events."""
         if event.button.id == "save":
             config = self.collect_config()
             self.app.config_manager.save_config(config)
@@ -56,6 +60,7 @@ class ConfigScreen(LogicProviderScreen):
             self.app.exit()
 
     def collect_config(self) -> dict:
+        """Return the config as a dictionary."""
         provider = self.query_one("#provider", RadioSet).pressed_button.id
         model = self.query_one("#model", Input).value
         api_key = self.query_one("#api-key", Input).value

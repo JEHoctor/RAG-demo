@@ -67,7 +67,7 @@ lint:
 
 # Type check
 typecheck:
-    uv run ty check src/
+    uv run --extra llamacpp ty check src/
     uv run --group=test ty check tests/
 
 # Type check with mypy

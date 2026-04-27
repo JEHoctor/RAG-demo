@@ -39,7 +39,7 @@ jobs:
 
       - name: Type check
         run: |
-          uv run ty check src/
+          uv run --extra llamacpp ty check src/
           uv run --group=test ty check tests/
 
       - name: Test

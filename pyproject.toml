@@ -48,11 +48,11 @@ chat = "rag_demo.__main__:main"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.14.3",
+    "ruff>=0.15.12",
     "mypy>=1.18.2",
     "textual-dev>=1.8.0",
     "ipython>=9.7.0",
-    "ty>=0.0.13",
+    "ty>=0.0.32",
     "uv-outdated>=1.0.4",
 ]
 test = [

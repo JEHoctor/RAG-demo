@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from io import UnsupportedOperation
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
@@ -8,17 +7,26 @@ from typing import TYPE_CHECKING, ClassVar
 from textual.app import App, _PrintCapture
 from textual.binding import Binding
 
-from rag_demo.modes import ChatScreen, ConfigScreen, HelpScreen
+from rag_demo.modes import ChatScreen, ConfigScreen, HelpScreen, RetrievalScreen
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from rag_demo.logic import Logic, Runtime
 
 
 class AppNotMountedError(RuntimeError):
-    """Raised when an operation cannot succeed because on_mount() has not been called."""
+    """Raised when an operation cannot succeed because the app is not mounted."""
 
     def __init__(self) -> None:  # noqa: D107
-        super().__init__("This operation cannot succeed because on_mount() has not been called.")
+        super().__init__("This operation cannot succeed because the app is not mounted.")
+
+
+class MisbehavingRuntimeLifecycleManagerError(RuntimeError):
+    """Raised when cleaning up the runtime lifecycle manager fails."""
+
+    def __init__(self) -> None:  # noqa: D107
+        super().__init__("The runtime lifecycle manager yielded when StopAsyncIteration was expected.")
 
 
 class PrintCaptureHasNoFileDescriptor(UnsupportedOperation):
@@ -48,11 +56,13 @@ class RAGDemo(App):
     BINDINGS: ClassVar = [
         Binding("z", "switch_mode('chat')", "chat"),
         Binding("c", "switch_mode('config')", "configure"),
+        Binding("r", "switch_mode('retrieval')", "retrieval"),
         Binding("h", "switch_mode('help')", "help"),
     ]
     MODES: ClassVar = {
         "chat": ChatScreen,
         "config": ConfigScreen,
+        "retrieval": RetrievalScreen,
         "help": HelpScreen,
     }
 
@@ -66,25 +76,38 @@ class RAGDemo(App):
         self._capture_stdout = _SafePrintCapture(self, stderr=False)
         self._capture_stderr = _SafePrintCapture(self, stderr=True)
         self.logic = logic
-        self._runtime_future: asyncio.Future[Runtime] | None = None
+        self._runtime: Runtime | None = None
+        self._runtime_lifecycle_manager: AsyncIterator[Runtime] | None = None
 
     async def on_mount(self) -> None:
         """Set the initial mode to chat and initialize async parts of the logic."""
         self.switch_mode("chat")
-        # The runtime future must be created in async code so that it is attached to the loop in which it will be used.
-        self._runtime_future = asyncio.Future()
-        self.run_worker(self._hold_runtime())
+        manager = self._new_runtime_lifecycle_manager()
+        runtime = await anext(manager)
+        self._runtime_lifecycle_manager = manager
+        self._runtime = runtime
 
-    async def _hold_runtime(self) -> None:
-        if self._runtime_future is None:
+    async def on_unmount(self) -> None:
+        """Clean up the application runtime."""
+        if self._runtime_lifecycle_manager is None:
             raise AppNotMountedError
+        manager = self._runtime_lifecycle_manager
+        self._runtime = None
+        self._runtime_lifecycle_manager = None
+        try:
+            await anext(manager)
+        except StopAsyncIteration:
+            pass
+        else:
+            raise MisbehavingRuntimeLifecycleManagerError
+
+    async def _new_runtime_lifecycle_manager(self) -> AsyncIterator[Runtime]:
         async with self.logic.runtime(app=self) as runtime:
-            self._runtime_future.set_result(runtime)
-            # Pause the task until Textual cancels it when the application closes.
-            await asyncio.Event().wait()
+            yield runtime
 
-    async def runtime(self) -> Runtime:
+    @property
+    def runtime(self) -> Runtime:
         """Returns the application runtime logic."""
-        if self._runtime_future is None:
+        if self._runtime is None:
             raise AppNotMountedError
-        return await self._runtime_future
+        return self._runtime

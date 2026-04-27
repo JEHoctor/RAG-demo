@@ -95,10 +95,6 @@ ignore = [
     "D100",      # undocumented-public-module
     "D104",      # undocumented-public-package
     "D203",      # Conflicts with Google style D211/D212
-    "ANN101",    # Missing type annotation for self
-    "ANN102",    # Missing type annotation for cls
-    "PLE1205",   # This rule falsely identifies Textual Loggers as standard Python Loggers, creating false positives.
-    "TRY400",    # Textual.Logger doesn't provide an exception logger, so it's fine to use Logger.error instead.
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -108,6 +104,9 @@ ignore = [
     "INP001",    # No need to create __init__.py files in the tests/ directory; only pytest runs the tests.
     "C419",      # It's OK to use extra list comprehensions in tests to make the output more informative.
     "PLR2004",   # There are going to be some magic values in the tests. It's OK.
+]
+"automation/*" = [
+    "INP001",    # No need to create __init__.py files in the automation/ directory.
 ]
 
 [tool.ruff.lint.pydocstyle]

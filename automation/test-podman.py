@@ -1,4 +1,4 @@
-"""This script coordinates the system for testing the app in a podman container."""  # noqa: INP001
+"""This script coordinates the system for testing the app in a podman container."""
 
 from __future__ import annotations
 
@@ -46,7 +46,6 @@ def print_for_dry_run(*, arg_groups: Sequence[Sequence[str]]) -> None:
     """Pretty print a command on multiple lines with bash syntax highlighting.
 
     Args:
-        command_title (str): The title of the command to be displayed above
         arg_groups (Sequence[Sequence[str]]): The groups of arguments to display on each line
     """
     code = ""

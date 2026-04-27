@@ -91,6 +91,7 @@ line-length = 120
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
+    "COM812",    # Enforces trailing commas. Not recommended for use with the formatter.
     "E501",      # Handled by ruff format (line-too-long)
     "D100",      # undocumented-public-module
     "D104",      # undocumented-public-package

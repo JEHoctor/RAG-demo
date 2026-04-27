@@ -57,6 +57,10 @@ test:
 format:
     uv run ruff format src/ tests/
 
+# Format check
+format-check:
+    uv run ruff format --check src/ tests/
+
 # Lint
 lint:
     uv run ruff check src/ tests/
@@ -76,3 +80,6 @@ typecheck-all: typecheck typecheck-alternate
 # Show outdated packages
 outdated:
     uv run uv-outdated --show-headers --group-by-ancestor
+
+# Run checks
+check: format-check lint typecheck test

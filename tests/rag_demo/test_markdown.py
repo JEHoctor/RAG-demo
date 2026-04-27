@@ -1,7 +1,7 @@
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-from rag_demo import markdown
+from rag_demo.widgets import markdown
 
 SAMPLE_MARKDOWN = """
 Here's a haiku about snakes:

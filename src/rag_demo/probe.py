@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import importlib.util
 import platform
 from pathlib import Path
 
@@ -12,15 +13,7 @@ import psutil
 import pynvml
 from huggingface_hub.constants import HF_HUB_CACHE
 
-try:
-    # llama-cpp-python is an optional dependency. If it is not installed in the dev environment then we need to ignore
-    # unresolved-import. If it is installed, then we need to ignore unused-ignore-comment (because there is no need to
-    # ignore unresolved-import in this case).
-    import llama_cpp  # ty:ignore[unresolved-import, unused-ignore-comment]
-
-    LLAMA_AVAILABLE = True
-except ImportError:
-    LLAMA_AVAILABLE = False
+LLAMA_AVAILABLE = importlib.util.find_spec("llama_cpp") is not None
 
 
 def probe_os() -> str:
@@ -55,7 +48,11 @@ def probe_llama_available() -> bool:
 
 def probe_llamacpp_gpu_support() -> bool:
     """Returns True if the installed version of llama-cpp-python supports GPU offloading, False otherwise."""
-    return LLAMA_AVAILABLE and llama_cpp.llama_supports_gpu_offload()
+    if not LLAMA_AVAILABLE:
+        return False
+    import llama_cpp  # noqa: PLC0415
+
+    return llama_cpp.llama_supports_gpu_offload()
 
 
 def probe_huggingface_free_cache_space() -> int | None:

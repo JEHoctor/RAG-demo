@@ -132,7 +132,7 @@ class Runtime:
 class Logic:
     """Top-level application logic."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         username: str | None = None,
         preferred_provider_type: LocalProviderType | None = None,

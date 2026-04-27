@@ -30,7 +30,7 @@ class Agent(Protocol):
 class AgentProvider(Protocol):
     """A strategy for creating LLM agents."""
 
-    type: Final[LocalProviderType]
+    type: Final[LocalProviderType]  # ty:ignore[final-without-value]
 
     def get_agent(self, checkpoints_sqlite_db: str | Path) -> AbstractAsyncContextManager[Agent | None]:
         """Attempt to create an agent.

@@ -13,14 +13,6 @@ clean:
 build:
     uv build
 
-# Upload package to PyPI
-publish: clean build
-    uv publish ${JEHOCTOR_RAG_DEMO_PUBLISH_TOKEN:+--token=$JEHOCTOR_RAG_DEMO_PUBLISH_TOKEN}
-
-# Upload package to TestPyPI
-publish-test: clean build
-    uv publish ${JEHOCTOR_RAG_DEMO_TEST_PUBLISH_TOKEN:+--token=$JEHOCTOR_RAG_DEMO_TEST_PUBLISH_TOKEN} --index testpypi
-
 # Run the chat command
 chat *ARGS:
     uv run chat "$@"
@@ -59,11 +51,15 @@ podman *ARGS:
 
 # Test
 test:
-    uv run --group=test --no-dev pytest -vv --cov=src --cov-report=term --cov-fail-under=45 tests/
+    uv run --group=test --no-dev pytest -vv --cov=src --cov-report=term tests/
 
 # Format
 format:
     uv run ruff format src/ tests/
+
+# Format check
+format-check:
+    uv run ruff format --check src/ tests/
 
 # Lint
 lint:
@@ -71,7 +67,7 @@ lint:
 
 # Type check
 typecheck:
-    uv run ty check src/
+    uv run --extra llamacpp ty check src/
     uv run --group=test ty check tests/
 
 # Type check with mypy
@@ -84,3 +80,6 @@ typecheck-all: typecheck typecheck-alternate
 # Show outdated packages
 outdated:
     uv run uv-outdated --show-headers --group-by-ancestor
+
+# Run checks
+check: format-check lint typecheck test

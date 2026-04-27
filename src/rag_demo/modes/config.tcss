@@ -1,0 +1,10 @@
+#placeholder-container {
+    align: center middle;
+    hatch: cross $surface-lighten-1 100%;
+}
+
+#placeholder-text {
+    text-align: center;
+    padding: 1 2 1 2;
+    border: hkey $primary;
+}

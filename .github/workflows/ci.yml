@@ -29,7 +29,7 @@ jobs:
           python-version: "3.12"
 
       - name: Sync
-        run: uv sync
+        run: uv sync --extra llamacpp
 
       - name: Format check
         run: uv run ruff format --check src/ tests/

@@ -25,9 +25,12 @@ class PathMapping[KE, V](MutableMapping[tuple[KE, ...], V]):
         """Return an item from a path of key elements."""
         branch: tuple[KE, ...] = key[:-1]
         leaf: KE = key[-1]
-        result = self._shortcuts[branch][leaf]
+        try:
+            result = self._shortcuts[branch][leaf]
+        except KeyError:
+            raise KeyError(key) from None
         if isinstance(result, dict):
-            raise KeyError
+            raise KeyError(key)
         return result[0]
 
     def __setitem__(self, key: tuple[KE, ...], value: V) -> None:
@@ -42,14 +45,14 @@ class PathMapping[KE, V](MutableMapping[tuple[KE, ...], V]):
         while spoke:
             segment: KE = spoke.pop()
             if segment in landing:
-                raise KeyError
+                raise ValueError(key)
             new_nested_dict: NestedDict[KE, tuple[V]] = {}
             landing[segment] = new_nested_dict
             branch: tuple[KE, ...] = (*branch, segment)
             self._shortcuts[branch] = new_nested_dict
             landing = new_nested_dict
         if isinstance(landing.get(leaf), dict):
-            raise KeyError
+            raise ValueError(key)  # noqa: TRY004
         if leaf not in landing:
             self._len += 1
         landing[leaf] = (value,)
@@ -58,9 +61,19 @@ class PathMapping[KE, V](MutableMapping[tuple[KE, ...], V]):
         """Delete an item from a path of key elements."""
         branch: tuple[KE, ...] = key[:-1]
         leaf: KE = key[-1]
-        if leaf not in self._shortcuts[branch]:
-            raise KeyError
+        if branch not in self._shortcuts:
+            raise KeyError(key)
+        node = self._shortcuts[branch].get(leaf)
+        if node is None or isinstance(node, dict):
+            raise KeyError(key)
         del self._shortcuts[branch][leaf]
+        self._len -= 1
+        # Clean up empty intermediate dicts so their paths can be reused as leaves.
+        while branch and not self._shortcuts[branch]:
+            del self._shortcuts[branch]
+            parent = branch[:-1]
+            del self._shortcuts[parent][branch[-1]]
+            branch = parent
 
     def __iter__(self) -> Iterator[tuple[KE, ...]]:
         """Return an iterator over the keys of the mapping."""

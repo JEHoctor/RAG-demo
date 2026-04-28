@@ -21,6 +21,7 @@ from textual.widgets import (
     TabPane,
 )
 
+from rag_demo.config_mapping import PathMapping
 from rag_demo.modes._logic_provider import LogicProviderScreen
 
 if TYPE_CHECKING:
@@ -101,7 +102,7 @@ class ConfigWidget[T: BaseModel](Widget):
         self._model = model
         self._callback = callback
 
-        self._selections: dict[tuple[str, ...], Any] = {}
+        self._selections: PathMapping[str, Any] = PathMapping()
         self._id_to_field: dict[str, tuple[str, ...]] = {}
         self._id_generator = _sequential_ids(namespace=self._name)
 
@@ -153,7 +154,7 @@ class ConfigWidget[T: BaseModel](Widget):
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle input change events."""
-        self._selections[event.input.id] = event.value
+        self._selections[self._id_to_field[event.input.id]] = event.value
 
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
         """Handle radio set change events."""
@@ -161,9 +162,13 @@ class ConfigWidget[T: BaseModel](Widget):
 
     def collect_config(self) -> T:
         """Create a configuration from the selected options."""
-        return self._model.model_validate(
-            {field_name: value for field_name, value in self._selections.items() if value is not None}
-        )
+        base: dict[str, Any] = self._config.model_dump()
+        for path, value in self._selections.items():
+            target = base
+            for segment in path[:-1]:
+                target = target[segment]
+            target[path[-1]] = value
+        return self._model.model_validate(base)
 
 
 class PlaceholderConfigWidget(Widget):

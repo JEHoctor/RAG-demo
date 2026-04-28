@@ -41,7 +41,7 @@ def _sequential_ids(namespace: str) -> Iterator[str]:
         str: a unique id
     """
     for sequence_number in count():
-        yield f"generated-id.{namespace}.{sequence_number}"
+        yield f"generated-id-{namespace}-{sequence_number}"
 
 
 class EnumRadioSet(RadioSet):
@@ -224,7 +224,7 @@ class ConfigScreen(LogicProviderScreen):
             title (str): title of the tab
         """
         if name in self._tabs:
-            raise ValueError
+            raise ValueError(name)
 
         tab_widget = ConfigWidget[T](name=name, current_config=current_config, model=model, callback=callback)
         self._tabs[name] = tab_widget

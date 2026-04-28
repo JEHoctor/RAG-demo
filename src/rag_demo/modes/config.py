@@ -21,8 +21,8 @@ from textual.widgets import (
     TabPane,
 )
 
-from rag_demo.config_mapping import PathMapping
 from rag_demo.modes._logic_provider import LogicProviderScreen
+from rag_demo.tree_mapping import TreeMapping
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -102,7 +102,7 @@ class ConfigWidget[T: BaseModel](Widget):
         self._model = model
         self._callback = callback
 
-        self._selections: PathMapping[str, Any] = PathMapping()
+        self._selections: TreeMapping[str, Any] = TreeMapping()
         self._id_to_field: dict[str, tuple[str, ...]] = {}
         self._id_generator = _sequential_ids(namespace=self._name)
 

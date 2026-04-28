@@ -11,11 +11,11 @@ type NestedDict[K, V] = dict[K, NestedDict[K, V] | V]
 type NestedMapping[K, V] = Mapping[K, NestedMapping[K, V] | V]
 
 
-class PathMapping[KE, V](MutableMapping[tuple[KE, ...], V]):
+class TreeMapping[KE, V](MutableMapping[tuple[KE, ...], V]):
     """A hierarchical mapping that can be updated with tuple keys and converted to nested dictionaries."""
 
     def __init__(self) -> None:
-        """Initialize the path mapping."""
+        """Initialize the tree mapping."""
         # The underlying data structure is a nested dictionary, but we only track a mapping of shortcuts
         # into this data structure. For every dictionary in the nested structure we maintain a shortcut.
         self._shortcuts: dict[tuple[KE, ...], NestedDict[KE, tuple[V]]] = {(): {}}

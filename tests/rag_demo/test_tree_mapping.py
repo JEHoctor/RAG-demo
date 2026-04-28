@@ -121,6 +121,21 @@ def test_get_missing_key_raises() -> None:
         _ = m[("missing",)]
 
 
+def test_get_intermediate_node_raises() -> None:
+    """Accessing a key that is an intermediate node rather than a leaf raises KeyError."""
+    m: TreeMapping[str, int] = TreeMapping()
+    m[("a", "b")] = 1
+    with pytest.raises(KeyError, match="'a'"):
+        _ = m[("a",)]
+
+
+def test_delete_key_with_unknown_branch_raises() -> None:
+    """Deleting a key whose parent branch has no shortcut raises KeyError."""
+    m: TreeMapping[str, int] = TreeMapping()
+    with pytest.raises(KeyError):
+        del m[("x", "y")]
+
+
 def test_iter_returns_all_leaf_paths() -> None:
     """Iteration yields full tuple paths to every leaf, skipping intermediate nodes."""
     m: TreeMapping[str, int] = TreeMapping()

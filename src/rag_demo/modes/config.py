@@ -40,7 +40,7 @@ def _sequential_ids(namespace: str) -> Iterator[str]:
         str: a unique id
     """
     for sequence_number in count():
-        yield f"{namespace}.{sequence_number}"
+        yield f"generated-id.{namespace}.{sequence_number}"
 
 
 class EnumRadioSet(RadioSet):

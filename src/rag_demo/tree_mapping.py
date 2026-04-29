@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, MutableMapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -18,53 +18,54 @@ class TreeMapping[KE, V](MutableMapping[tuple[KE, ...], V]):
         """Initialize the tree mapping."""
         # The underlying data structure is a nested dictionary, but we only track a mapping of shortcuts
         # into this data structure. For every dictionary in the nested structure we maintain a shortcut.
-        self._shortcuts: dict[tuple[KE, ...], NestedDict[KE, tuple[V]]] = {(): {}}
+        self._shortcuts: dict[tuple[KE, ...], NestedDict[KE, V]] = {(): {}}
         self._len = 0
 
     def __getitem__(self, key: tuple[KE, ...]) -> V:
         """Return an item from a path of key elements."""
-        branch: tuple[KE, ...] = key[:-1]
-        leaf: KE = key[-1]
-        try:
-            result = self._shortcuts[branch][leaf]
-        except KeyError:
-            raise KeyError(key) from None
-        if isinstance(result, dict):
+        if key in self._shortcuts:
             raise KeyError(key)
-        return result[0]
+        branch: tuple[KE, ...] = key[:-1]
+        if branch not in self._shortcuts:
+            raise KeyError(key)
+        leaf: KE = key[-1]
+        if leaf not in self._shortcuts[branch]:
+            raise KeyError(key)
+        # Type checker can't reason about the shortcuts invariant:
+        return cast("V", self._shortcuts[branch][leaf])
 
     def __setitem__(self, key: tuple[KE, ...], value: V) -> None:
         """Set an item in a path of key elements."""
+        if key in self._shortcuts:
+            raise ValueError(key)
         branch: tuple[KE, ...] = key[:-1]
         leaf: KE = key[-1]
-        spoke: list[KE] = []
+        stack: list[tuple[KE, tuple[KE, ...]]] = []
         while branch not in self._shortcuts:
-            spoke.append(branch[-1])
+            stack.append((branch[-1], branch))
             branch: tuple[KE, ...] = branch[:-1]
-        landing: NestedDict[KE, tuple[V]] = self._shortcuts[branch]
-        while spoke:
-            segment: KE = spoke.pop()
+        landing: NestedDict[KE, V] = self._shortcuts[branch]
+        while stack:
+            segment, branch = stack.pop()
             if segment in landing:
                 raise ValueError(key)
-            new_nested_dict: NestedDict[KE, tuple[V]] = {}
+            new_nested_dict: NestedDict[KE, V] = {}
             landing[segment] = new_nested_dict
-            branch: tuple[KE, ...] = (*branch, segment)
             self._shortcuts[branch] = new_nested_dict
             landing = new_nested_dict
-        if isinstance(landing.get(leaf), dict):
-            raise ValueError(key)  # noqa: TRY004
         if leaf not in landing:
             self._len += 1
-        landing[leaf] = (value,)
+        landing[leaf] = value
 
     def __delitem__(self, key: tuple[KE, ...]) -> None:
         """Delete an item from a path of key elements."""
+        if key in self._shortcuts:
+            raise KeyError(key)
         branch: tuple[KE, ...] = key[:-1]
-        leaf: KE = key[-1]
         if branch not in self._shortcuts:
             raise KeyError(key)
-        node = self._shortcuts[branch].get(leaf)
-        if node is None or isinstance(node, dict):
+        leaf: KE = key[-1]
+        if leaf not in self._shortcuts[branch]:
             raise KeyError(key)
         del self._shortcuts[branch][leaf]
         self._len -= 1
@@ -78,14 +79,15 @@ class TreeMapping[KE, V](MutableMapping[tuple[KE, ...], V]):
     def __iter__(self) -> Iterator[tuple[KE, ...]]:
         """Return an iterator over the keys of the mapping."""
         for branch, landing in self._shortcuts.items():
-            for key, value in landing.items():
-                if not isinstance(value, dict):
-                    yield (*branch, key)
+            for leaf in landing:
+                path: tuple[KE, ...] = (*branch, leaf)
+                if path not in self._shortcuts:
+                    yield path
 
     def __len__(self) -> int:
         """Return the number of items in the mapping."""
         return self._len
 
-    def convert(self) -> NestedMapping[KE, tuple[V]]:
+    def convert(self) -> NestedMapping[KE, V]:
         """Return the underlying nested dictionary as a read-only view of the mapping."""
         return self._shortcuts[()]

@@ -151,13 +151,13 @@ def test_iter_empty_mapping() -> None:
     assert list(m) == []
 
 
-def test_convert_returns_nested_dict_with_wrapped_values() -> None:
-    """convert() exposes the raw internal structure where leaf values are single-element tuples."""
+def test_convert_returns_nested_dict() -> None:
+    """convert() exposes the underlying nested dictionary structure."""
     m: TreeMapping[str, int] = TreeMapping()
     m[("a", "b")] = 1
     m[("a", "c")] = 2
     m[("d",)] = 3
-    assert m.convert() == {"a": {"b": (1,), "c": (2,)}, "d": (3,)}
+    assert m.convert() == {"a": {"b": 1, "c": 2}, "d": 3}
 
 
 def test_mutablemapping_items() -> None:

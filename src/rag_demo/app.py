@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, ClassVar
 from textual.app import App, _PrintCapture
 from textual.binding import Binding
 
-from rag_demo.modes import ChatScreen, HelpScreen
+from rag_demo.modes import ChatScreen, ConfigScreen, HelpScreen
 
 if TYPE_CHECKING:
     from rag_demo.logic import Logic, Runtime
@@ -47,10 +47,12 @@ class RAGDemo(App):
     CSS_PATH = Path(__file__).parent / "app.tcss"
     BINDINGS: ClassVar = [
         Binding("z", "switch_mode('chat')", "chat"),
+        Binding("c", "switch_mode('config')", "config"),
         Binding("h", "switch_mode('help')", "help"),
     ]
     MODES: ClassVar = {
         "chat": ChatScreen,
+        "config": ConfigScreen,
         "help": HelpScreen,
     }
 
